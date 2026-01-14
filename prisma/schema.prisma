@@ -1,0 +1,295 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// User Model
+// ============================================================================
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  fullName      String
+  avatar        String?
+  bio           String?
+  website       String?
+  isPrivate     Boolean   @default(false)
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  stories       Story[]
+  highlights    Highlight[]
+  savedPosts    SavedPost[]
+  
+  // Follow relations
+  followers     Follow[]  @relation("following")
+  following     Follow[]  @relation("follower")
+  
+  // Message relations
+  sentMessages      Message[]      @relation("sender")
+  receivedMessages  Message[]      @relation("receiver")
+  conversations     Participant[]
+  
+  // Notification relations
+  notificationsSent     Notification[] @relation("actor")
+  notificationsReceived Notification[] @relation("recipient")
+
+  @@map("users")
+}
+
+// ============================================================================
+// Follow Model
+// ============================================================================
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+// ============================================================================
+// Post Model
+// ============================================================================
+model Post {
+  id          String    @id @default(cuid())
+  userId      String
+  imageUrl    String
+  caption     String?
+  location    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  likes       Like[]
+  savedBy     SavedPost[]
+  notifications Notification[]
+
+  @@map("posts")
+}
+
+// ============================================================================
+// Comment Model
+// ============================================================================
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Parent comment for replies
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  // Relations
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes     CommentLike[]
+
+  @@map("comments")
+}
+
+// ============================================================================
+// Like Model (for Posts)
+// ============================================================================
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("likes")
+}
+
+// ============================================================================
+// Comment Like Model
+// ============================================================================
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@map("comment_likes")
+}
+
+// ============================================================================
+// Saved Post Model
+// ============================================================================
+model SavedPost {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("saved_posts")
+}
+
+// ============================================================================
+// Story Model
+// ============================================================================
+model Story {
+  id        String   @id @default(cuid())
+  userId    String
+  imageUrl  String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views     StoryView[]
+  highlights HighlightStory[]
+
+  @@map("stories")
+}
+
+// ============================================================================
+// Story View Model
+// ============================================================================
+model StoryView {
+  id        String   @id @default(cuid())
+  storyId   String
+  viewerId  String
+  createdAt DateTime @default(now())
+
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, viewerId])
+  @@map("story_views")
+}
+
+// ============================================================================
+// Highlight Model
+// ============================================================================
+model Highlight {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  coverImage String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stories    HighlightStory[]
+
+  @@map("highlights")
+}
+
+// ============================================================================
+// Highlight Story (Junction Table)
+// ============================================================================
+model HighlightStory {
+  id          String    @id @default(cuid())
+  highlightId String
+  storyId     String
+  createdAt   DateTime  @default(now())
+
+  highlight   Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+  story       Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([highlightId, storyId])
+  @@map("highlight_stories")
+}
+
+// ============================================================================
+// Conversation Model
+// ============================================================================
+model Conversation {
+  id           String        @id @default(cuid())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  participants Participant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+// ============================================================================
+// Participant Model (Junction Table for Conversations)
+// ============================================================================
+model Participant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("participants")
+}
+
+// ============================================================================
+// Message Model
+// ============================================================================
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  receiverId     String
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver       User         @relation("receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// ============================================================================
+// Notification Model
+// ============================================================================
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // 'like', 'comment', 'follow', 'mention', 'tag'
+  actorId     String
+  recipientId String
+  postId      String?
+  message     String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  actor       User     @relation("actor", fields: [actorId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  post        Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
