@@ -1,0 +1,5 @@
+{
+  "name": "InstaClone Pro",
+  "description": "A pixel-perfect Instagram Web UI clone built with React, Tailwind CSS, and Gemini-powered content generation. It features a responsive sidebar, story highlights, and a dynamic feed with realistic captions.",
+  "requestFramePermissions": []
+}
