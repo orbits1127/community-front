@@ -1,34 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Get stories from followed users
+// Get stories from followed users (or all stories if no userId)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'User ID is required' },
-        { status: 400 }
-      );
+    let whereClause: { userId?: { in: string[] }; expiresAt: { gt: Date } } = {
+      expiresAt: { gt: new Date() },
+    };
+
+    // If userId is provided, filter by followed users
+    if (userId) {
+      const following = await prisma.follow.findMany({
+        where: { followerId: userId },
+        select: { followingId: true },
+      });
+
+      const followingIds = following.map(f => f.followingId);
+      followingIds.push(userId); // Include own stories
+      whereClause.userId = { in: followingIds };
     }
-
-    // Get users that the current user follows
-    const following = await prisma.follow.findMany({
-      where: { followerId: userId },
-      select: { followingId: true },
-    });
-
-    const followingIds = following.map(f => f.followingId);
-    followingIds.push(userId); // Include own stories
 
     // Get stories that haven't expired
     const stories = await prisma.story.findMany({
-      where: {
-        userId: { in: followingIds },
-        expiresAt: { gt: new Date() },
-      },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
@@ -38,36 +35,36 @@ export async function GET(request: NextRequest) {
             avatar: true,
           },
         },
-        views: {
+        views: userId ? {
           where: { viewerId: userId },
           select: { id: true },
-        },
+        } : false,
       },
     });
 
-    // Group stories by user
-    const groupedStories = stories.reduce((acc, story) => {
-      const userId = story.user.id;
-      if (!acc[userId]) {
-        acc[userId] = {
-          user: story.user,
-          stories: [],
-          hasUnviewed: false,
-        };
-      }
-      acc[userId].stories.push({
-        ...story,
-        isViewed: story.views.length > 0,
-      });
-      if (story.views.length === 0) {
-        acc[userId].hasUnviewed = true;
-      }
-      return acc;
-    }, {} as Record<string, unknown>);
+    // Transform to expected format matching Story type
+    const transformedStories = stories.map(story => {
+      const isViewed = Array.isArray(story.views) ? story.views.length > 0 : false;
+      
+      return {
+        id: story.id,
+        userId: story.user.id,
+        user: {
+          id: story.user.id,
+          username: story.user.username,
+          fullName: story.user.username, // Using username as fallback
+          avatar: story.user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop',
+        },
+        imageUrl: story.imageUrl,
+        hasUnseenContent: !isViewed,
+        createdAt: story.createdAt.toISOString(),
+        expiresAt: story.expiresAt.toISOString(),
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      data: Object.values(groupedStories),
+      data: transformedStories,
     });
   } catch (error) {
     console.error('Get stories error:', error);

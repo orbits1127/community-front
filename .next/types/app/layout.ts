@@ -1,4 +1,4 @@
-// File: C:\Users\znzl8\orbit\instargram-prisma\app\layout.tsx
+// File: D:\Orbits\dev\instargram-prisma\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
