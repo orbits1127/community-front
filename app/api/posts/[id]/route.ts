@@ -50,12 +50,14 @@ export async function GET(
       );
     }
 
+    const { _count, ...postData } = post;
+    
     return NextResponse.json({
       success: true,
       data: {
-        ...post,
-        likesCount: post._count.likes,
-        commentsCount: post._count.comments,
+        ...postData,
+        likes: _count.likes,
+        commentsCount: _count.comments,
       },
     });
   } catch (error) {

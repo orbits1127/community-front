@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Grid, Film, Bookmark, UserSquare2, Settings, Plus, Heart, MessageCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { UserProfile, Post, Highlight, Story } from '../types';
 import { userService, postService, highlightService } from '../services/dataService';
+import CommentModal from '../components/CommentModal';
 
 interface ProfileViewProps {
   userId?: string;
@@ -23,6 +24,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
   const [storyIndex, setStoryIndex] = useState(0);
   const [highlightStories, setHighlightStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
+  
+  // Post modal state
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [loadingPost, setLoadingPost] = useState(false);
 
   // Fetch profile data
   useEffect(() => {
@@ -336,7 +341,57 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
             </div>
           ) : posts.length > 0 ? (
             posts.map(post => (
-              <div key={post.id} className="profile-post">
+              <div 
+                key={post.id} 
+                className="profile-post"
+                onClick={async () => {
+                  // Fetch full post data with user information
+                  // Preserve the original commentsCount to match the displayed count
+                  const originalCommentsCount = post.commentsCount;
+                  
+                  setLoadingPost(true);
+                  try {
+                    const postRes = await postService.getPost(post.id);
+                    if (postRes.success && postRes.data) {
+                      // Preserve original commentsCount to match the displayed count
+                      setSelectedPost({
+                        ...postRes.data,
+                        commentsCount: originalCommentsCount,
+                      });
+                    } else {
+                      // Fallback: use profile data to construct post with user info
+                      if (profile) {
+                        setSelectedPost({
+                          ...post,
+                          user: {
+                            id: profile.id,
+                            username: profile.username,
+                            fullName: profile.fullName,
+                            avatar: profile.avatar,
+                          },
+                        });
+                      }
+                    }
+                  } catch (err) {
+                    console.error('Error loading post:', err);
+                    // Fallback: use profile data
+                    if (profile) {
+                      setSelectedPost({
+                        ...post,
+                        user: {
+                          id: profile.id,
+                          username: profile.username,
+                          fullName: profile.fullName,
+                          avatar: profile.avatar,
+                        },
+                      });
+                    }
+                  } finally {
+                    setLoadingPost(false);
+                  }
+                }}
+                style={{ cursor: 'pointer' }}
+              >
                 {post.imageUrl ? (
                   <img src={post.imageUrl} alt={`Post ${post.id}`} />
                 ) : (
@@ -570,6 +625,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
             )}
           </div>
         </div>
+      )}
+
+      {/* Comment Modal */}
+      {selectedPost && (
+        <CommentModal post={selectedPost} onClose={() => setSelectedPost(null)} />
       )}
     </div>
   );

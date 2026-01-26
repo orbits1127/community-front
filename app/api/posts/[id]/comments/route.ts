@@ -53,18 +53,33 @@ export async function GET(
       where: { postId, parentId: null },
     });
 
+    const transformedComments = comments.map(comment => ({
+      id: comment.id,
+      postId: comment.postId,
+      userId: comment.userId,
+      user: comment.user,
+      content: comment.content,
+      likes: comment._count.likes,
+      createdAt: comment.createdAt.toISOString(),
+      replies: comment.replies.map(reply => ({
+        id: reply.id,
+        postId: reply.postId,
+        userId: reply.userId,
+        user: reply.user,
+        content: reply.content,
+        likes: 0,
+        createdAt: reply.createdAt.toISOString(),
+      })),
+    }));
+
     return NextResponse.json({
       success: true,
-      data: comments.map(comment => ({
-        ...comment,
-        likesCount: comment._count.likes,
-        repliesCount: comment._count.replies,
-      })),
-      pagination: {
-        page,
-        limit,
+      data: {
+        items: transformedComments,
         total,
-        totalPages: Math.ceil(total / limit),
+        page,
+        pageSize: limit,
+        hasMore: page * limit < total,
       },
     });
   } catch (error) {
