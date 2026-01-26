@@ -41,6 +41,40 @@ export async function POST(
       },
     });
 
+    // Check if the followed user has any posts
+    const existingPosts = await prisma.post.findMany({
+      where: { userId: followingId },
+      take: 1,
+    });
+
+    // If no posts exist, create one post for the followed user
+    if (existingPosts.length === 0) {
+      await prisma.post.create({
+        data: {
+          userId: followingId,
+          imageUrl: `https://picsum.photos/seed/post-${followingId}/600/600`,
+          caption: 'Welcome to my profile!',
+        },
+      });
+    }
+
+    // Check if the followed user has any stories
+    const existingStories = await prisma.story.findMany({
+      where: { userId: followingId },
+      take: 1,
+    });
+
+    // If no stories exist, create one story for the followed user
+    if (existingStories.length === 0) {
+      await prisma.story.create({
+        data: {
+          userId: followingId,
+          imageUrl: `https://picsum.photos/seed/story-${followingId}/400/700`,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+        },
+      });
+    }
+
     // Create notification
     await prisma.notification.create({
       data: {

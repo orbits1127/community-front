@@ -112,7 +112,13 @@ export async function POST(
           select: {
             id: true,
             username: true,
+            fullName: true,
             avatar: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
           },
         },
       },
@@ -136,9 +142,18 @@ export async function POST(
       });
     }
 
+    // Transform to match Comment type
     return NextResponse.json({
       success: true,
-      data: comment,
+      data: {
+        id: comment.id,
+        postId: comment.postId,
+        userId: comment.userId,
+        user: comment.user,
+        content: comment.content,
+        likes: comment._count.likes,
+        createdAt: comment.createdAt.toISOString(),
+      },
     });
   } catch (error) {
     console.error('Create comment error:', error);

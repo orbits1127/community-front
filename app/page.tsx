@@ -152,7 +152,11 @@ const App: React.FC = () => {
         {renderContent()}
       </main>
       {selectedPost && (
-        <CommentModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+        <CommentModal 
+          post={selectedPost} 
+          currentUser={currentUser}
+          onClose={() => setSelectedPost(null)} 
+        />
       )}
       {showCreateModal && (
         <CreateModal onClose={() => setShowCreateModal(false)} />

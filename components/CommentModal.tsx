@@ -2,12 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import { X, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Smile } from 'lucide-react';
-import { Post as PostType, Comment } from '../types';
+import { Post as PostType, Comment, AuthUser } from '../types';
 import { commentService } from '../services/dataService';
 
-const CommentModal: React.FC<{ post: PostType; onClose: () => void }> = ({ post, onClose }) => {
+interface CommentModalProps {
+  post: PostType;
+  currentUser?: AuthUser | null;
+  onClose: () => void;
+}
+
+const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
+  const [commentText, setCommentText] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
   
   // Safe access to user data with fallbacks
   const user = post.user || {
@@ -58,6 +66,58 @@ const CommentModal: React.FC<{ post: PostType; onClose: () => void }> = ({ post,
 
     fetchComments();
   }, [post.id, post.commentsCount]);
+
+  // Handle posting a comment
+  const handlePostComment = async () => {
+    if (!commentText.trim() || !currentUser || postingComment) return;
+
+    setPostingComment(true);
+    try {
+      // Create comment via API
+      const response = await fetch(`/api/posts/${post.id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          content: commentText.trim(),
+        }),
+      });
+
+      const commentRes = await response.json();
+      
+      if (commentRes.success && commentRes.data) {
+        // Transform API response to Comment type
+        const newComment: Comment = {
+          id: commentRes.data.id,
+          postId: commentRes.data.postId,
+          userId: commentRes.data.userId,
+          user: {
+            id: currentUser.id,
+            username: currentUser.username,
+            fullName: currentUser.fullName,
+            avatar: currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop',
+          },
+          content: commentRes.data.content,
+          likes: 0,
+          createdAt: commentRes.data.createdAt || new Date().toISOString(),
+        };
+
+        // Add new comment at the beginning (most recent first)
+        setComments(prev => [newComment, ...prev]);
+        
+        // Clear input
+        setCommentText('');
+      } else {
+        console.error('Failed to post comment:', commentRes.error);
+      }
+    } catch (err) {
+      console.error('Error posting comment:', err);
+    } finally {
+      setPostingComment(false);
+    }
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -148,8 +208,29 @@ const CommentModal: React.FC<{ post: PostType; onClose: () => void }> = ({ post,
             
             <div className="modal-add-comment">
               <Smile size={24} className="modal-emoji-btn" />
-              <input type="text" placeholder="Add a comment..." className="modal-comment-input" />
-              <button className="modal-post-btn" disabled>Post</button>
+              <input 
+                type="text" 
+                placeholder="Add a comment..." 
+                className="modal-comment-input"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && commentText.trim() && !postingComment) {
+                    handlePostComment();
+                  }
+                }}
+              />
+              <button 
+                className="modal-post-btn" 
+                disabled={!commentText.trim() || postingComment}
+                onClick={handlePostComment}
+                style={{
+                  opacity: commentText.trim() && !postingComment ? 1 : 0.5,
+                  cursor: commentText.trim() && !postingComment ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {postingComment ? 'Posting...' : 'Post'}
+              </button>
             </div>
           </footer>
         </div>

@@ -72,18 +72,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
 
   // Handle follow/unfollow
   const handleFollowToggle = async () => {
-    if (!profile) return;
+    if (!profile || !userId) return;
 
     try {
       if (profile.isFollowing) {
-        await userService.unfollowUser(profile.id);
+        await userService.unfollowUser(profile.id, userId);
         setProfile(prev =>
           prev
             ? { ...prev, isFollowing: false, followersCount: prev.followersCount - 1 }
             : null
         );
       } else {
-        await userService.followUser(profile.id);
+        await userService.followUser(profile.id, userId);
         setProfile(prev =>
           prev
             ? { ...prev, isFollowing: true, followersCount: prev.followersCount + 1 }

@@ -89,7 +89,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
         const [postsRes, storiesRes, suggestionsRes] = await Promise.all([
           postService.getFeed(1, currentUser?.id),
           storyService.getStories(),
-          userService.getSuggestions(),
+          userService.getSuggestions(currentUser?.id),
         ]);
 
         if (postsRes.success && postsRes.data) {
@@ -100,6 +100,12 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
         }
         if (suggestionsRes.success && suggestionsRes.data) {
           setSuggestions(suggestionsRes.data);
+        } else {
+          // If API fails, log error but don't set empty array
+          console.error('Failed to load suggestions:', suggestionsRes.error);
+          // API should return dummy data if no users found, so this shouldn't happen
+          // But if it does, set empty array to show placeholders
+          setSuggestions([]);
         }
       } catch (err) {
         setError('Failed to load feed');
@@ -261,14 +267,16 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
 
   // Handle follow suggestion
   const handleFollow = useCallback(async (userId: string) => {
+    if (!currentUser?.id) return;
+    
     try {
-      await userService.followUser(userId);
+      await userService.followUser(userId, currentUser.id);
       // Remove from suggestions after following
       setSuggestions(prev => prev.filter(s => s.user.id !== userId));
     } catch (err) {
       console.error('Error following user:', err);
     }
-  }, []);
+  }, [currentUser?.id]);
 
   // Render placeholder when no data
   const renderPlaceholder = (count: number) =>

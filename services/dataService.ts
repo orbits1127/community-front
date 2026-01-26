@@ -100,12 +100,18 @@ export const userService = {
     });
   },
 
-  async followUser(userId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/users/${userId}/follow`, { method: 'POST' });
+  async followUser(userId: string, currentUserId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/users/${userId}/follow`, {
+      method: 'POST',
+      body: JSON.stringify({ userId: currentUserId }),
+    });
   },
 
-  async unfollowUser(userId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/users/${userId}/unfollow`, { method: 'POST' });
+  async unfollowUser(userId: string, currentUserId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/users/${userId}/unfollow`, {
+      method: 'DELETE',
+      body: JSON.stringify({ userId: currentUserId }),
+    });
   },
 
   async getFollowers(userId: string, page = 1): Promise<ApiResponse<PaginatedResponse<User>>> {
@@ -116,8 +122,9 @@ export const userService = {
     return fetchApi<PaginatedResponse<User>>(`/users/${userId}/following?page=${page}`);
   },
 
-  async getSuggestions(): Promise<ApiResponse<Suggestion[]>> {
-    return fetchApi<Suggestion[]>('/users/suggestions');
+  async getSuggestions(userId?: string): Promise<ApiResponse<Suggestion[]>> {
+    const params = userId ? `?userId=${userId}` : '';
+    return fetchApi<Suggestion[]>(`/users/suggestions${params}`);
   },
 
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {

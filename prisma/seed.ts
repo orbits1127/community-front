@@ -172,7 +172,61 @@ async function main() {
     }),
   ]);
 
-  console.log(`✅ ${friends.length + 1}명의 사용자 생성 완료`);
+  // 추천용 유저들 생성 (팔로우하지 않은 유저들)
+  const suggestedUsers = await Promise.all([
+    prisma.user.create({
+      data: {
+        email: 'suggested1@example.com',
+        username: 'suggested_user_1',
+        password: hashedPassword,
+        fullName: '추천 유저 1',
+        avatar: sampleImages.avatars[0],
+        bio: '추천 계정입니다 📸',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested2@example.com',
+        username: 'suggested_user_2',
+        password: hashedPassword,
+        fullName: '추천 유저 2',
+        avatar: sampleImages.avatars[1],
+        bio: '일상을 공유합니다 ✨',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested3@example.com',
+        username: 'suggested_user_3',
+        password: hashedPassword,
+        fullName: '추천 유저 3',
+        avatar: sampleImages.avatars[2],
+        bio: '여행을 좋아해요 🌴',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested4@example.com',
+        username: 'suggested_user_4',
+        password: hashedPassword,
+        fullName: '추천 유저 4',
+        avatar: sampleImages.avatars[3],
+        bio: '맛집 탐방 중 🍜',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested5@example.com',
+        username: 'suggested_user_5',
+        password: hashedPassword,
+        fullName: '추천 유저 5',
+        avatar: sampleImages.avatars[4],
+        bio: '운동하는 개발자 💪',
+      },
+    }),
+  ]);
+
+  console.log(`✅ ${friends.length + 1 + suggestedUsers.length}명의 사용자 생성 완료 (친구: ${friends.length}명, 추천 유저: ${suggestedUsers.length}명)`);
 
   // ============================================================================
   // 2. 팔로우 관계 생성
@@ -257,7 +311,23 @@ async function main() {
     }
   }
 
-  console.log(`✅ ${posts.length}개의 게시물 생성 완료 (test 유저: 5개, 친구들: ${friends.length * 3}개)`);
+  // 추천 유저들의 게시물 생성 (각 유저당 1개씩)
+  for (const suggestedUser of suggestedUsers) {
+    const post = await prisma.post.create({
+      data: {
+        userId: suggestedUser.id,
+        imageUrl: sampleImages.posts[postImageIndex % sampleImages.posts.length],
+        caption: captions[captionIndex % captions.length],
+        location: ['서울', '부산', '제주도', '강릉', '경주'][Math.floor(Math.random() * 5)],
+        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+    posts.push(post);
+    postImageIndex++;
+    captionIndex++;
+  }
+
+  console.log(`✅ ${posts.length}개의 게시물 생성 완료 (test 유저: 5개, 친구들: ${friends.length * 3}개, 추천 유저: ${suggestedUsers.length}개)`);
 
   // ============================================================================
   // 4. 스토리 생성 (24시간 유효)
@@ -296,7 +366,20 @@ async function main() {
     }
   }
 
-  console.log('✅ 스토리 생성 완료');
+  // 추천 유저들의 스토리 생성 (각 유저당 1개씩)
+  for (const suggestedUser of suggestedUsers) {
+    await prisma.story.create({
+      data: {
+        userId: suggestedUser.id,
+        imageUrl: sampleImages.stories[storyImageIndex % sampleImages.stories.length],
+        createdAt: new Date(now.getTime() - Math.random() * 12 * 60 * 60 * 1000),
+        expiresAt: expiresAt,
+      },
+    });
+    storyImageIndex++;
+  }
+
+  console.log(`✅ 스토리 생성 완료 (추천 유저: ${suggestedUsers.length}개)`);
 
   // ============================================================================
   // 5. 좋아요 생성
@@ -558,6 +641,7 @@ async function main() {
   console.log('   비밀번호: test');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`👥 친구 계정: ${friends.map(f => f.username).join(', ')}`);
+  console.log(`⭐ 추천 유저 계정: ${suggestedUsers.map(u => u.username).join(', ')}`);
   console.log(`📷 게시물: ${posts.length}개`);
   console.log('📱 스토리: 활성화됨 (24시간 유효)');
   console.log('💬 댓글 & 좋아요: 생성됨');
