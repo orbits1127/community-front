@@ -20,12 +20,20 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedPost, setSelectedPost] = useState<PostType | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Set mounted flag to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Check authentication status on mount
   useEffect(() => {
+    if (!isMounted) return;
+    
     const checkAuth = async () => {
       try {
         const response = await authService.getCurrentUser();
@@ -41,7 +49,7 @@ const App: React.FC = () => {
     };
 
     checkAuth();
-  }, []);
+  }, [isMounted]);
 
   // Scroll to top when tab changes
   useEffect(() => {
@@ -78,8 +86,8 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Show loading screen while checking auth
-  if (isAuthLoading) {
+  // Prevent hydration mismatch by showing consistent initial render
+  if (!isMounted || isAuthLoading) {
     return (
       <div style={{
         minHeight: '100vh',
