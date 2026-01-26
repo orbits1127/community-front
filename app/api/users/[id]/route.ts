@@ -37,14 +37,17 @@ export async function GET(
       );
     }
 
+    const { _count, ...userWithoutCount } = user;
+    const profile = {
+      ...userWithoutCount,
+      postsCount: _count.posts,
+      followersCount: _count.followers,
+      followingCount: _count.following,
+    };
+
     return NextResponse.json({
       success: true,
-      data: {
-        ...user,
-        postsCount: user._count.posts,
-        followersCount: user._count.followers,
-        followingCount: user._count.following,
-      },
+      data: profile,
     });
   } catch (error) {
     console.error('Get user error:', error);

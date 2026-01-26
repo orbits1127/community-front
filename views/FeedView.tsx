@@ -77,7 +77,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedStory, handlePrevStory, handleNextStory]);
 
-  // Fetch feed data
+  // Fetch feed data (팔로우한 사람 + 본인 포스트만 노출)
   useEffect(() => {
     const fetchFeedData = async () => {
       setLoading(true);
@@ -85,8 +85,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
 
       try {
         // Fetch posts, stories, and suggestions in parallel
+        // userId 전달 시 팔로우한 사람 + 본인 포스트만 조회
         const [postsRes, storiesRes, suggestionsRes] = await Promise.all([
-          postService.getFeed(),
+          postService.getFeed(1, currentUser?.id),
           storyService.getStories(),
           userService.getSuggestions(),
         ]);
@@ -109,7 +110,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
     };
 
     fetchFeedData();
-  }, []);
+  }, [currentUser?.id]);
 
   // Handle post like with animation
   const handleLike = useCallback(async (postId: string, isLiked: boolean) => {

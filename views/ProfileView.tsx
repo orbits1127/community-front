@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Grid, Film, Bookmark, UserSquare2, Settings, Plus, Heart, MessageCircle } from 'lucide-react';
-import { UserProfile, Post, Highlight } from '../types';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Grid, Film, Bookmark, UserSquare2, Settings, Plus, Heart, MessageCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { UserProfile, Post, Highlight, Story } from '../types';
 import { userService, postService, highlightService } from '../services/dataService';
 
 interface ProfileViewProps {
@@ -17,6 +17,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
   const [activeTab, setActiveTab] = useState('posts');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Story modal state
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
+  const [storyIndex, setStoryIndex] = useState(0);
+  const [highlightStories, setHighlightStories] = useState<Story[]>([]);
+  const [loadingStories, setLoadingStories] = useState(false);
 
   // Fetch profile data
   useEffect(() => {
@@ -40,10 +46,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
           setProfile(profileRes.data);
         }
         if (postsRes.success && postsRes.data) {
-          setPosts(postsRes.data.items);
+          const items = Array.isArray(postsRes.data)
+            ? postsRes.data
+            : (postsRes.data as { items?: Post[] })?.items ?? [];
+          setPosts(items);
         }
         if (highlightsRes.success && highlightsRes.data) {
-          setHighlights(highlightsRes.data);
+          setHighlights(Array.isArray(highlightsRes.data) ? highlightsRes.data : []);
         }
       } catch (err) {
         setError('Failed to load profile');
@@ -80,6 +89,67 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
       console.error('Error toggling follow:', err);
     }
   };
+
+  // Handle highlight click - fetch and show stories
+  const handleHighlightClick = useCallback(async (highlight: Highlight) => {
+    if (!userId) return;
+    
+    setLoadingStories(true);
+    try {
+      const storiesRes = await highlightService.getHighlightStories(userId, highlight.id);
+      if (storiesRes.success && storiesRes.data && storiesRes.data.length > 0) {
+        setHighlightStories(storiesRes.data);
+        setSelectedStory(storiesRes.data[0]);
+        setStoryIndex(0);
+      } else {
+        console.log('No stories found for this highlight');
+      }
+    } catch (err) {
+      console.error('Error loading highlight stories:', err);
+    } finally {
+      setLoadingStories(false);
+    }
+  }, [userId]);
+
+  // Story navigation handlers
+  const handlePrevStory = useCallback(() => {
+    if (storyIndex > 0) {
+      const prevIndex = storyIndex - 1;
+      setStoryIndex(prevIndex);
+      setSelectedStory(highlightStories[prevIndex]);
+    }
+  }, [storyIndex, highlightStories]);
+
+  const handleNextStory = useCallback(() => {
+    if (storyIndex < highlightStories.length - 1) {
+      const nextIndex = storyIndex + 1;
+      setStoryIndex(nextIndex);
+      setSelectedStory(highlightStories[nextIndex]);
+    } else {
+      // Close modal if no more stories
+      setSelectedStory(null);
+      setHighlightStories([]);
+    }
+  }, [storyIndex, highlightStories]);
+
+  // Keyboard navigation for stories
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedStory) return;
+      
+      if (e.key === 'ArrowLeft') {
+        handlePrevStory();
+      } else if (e.key === 'ArrowRight') {
+        handleNextStory();
+      } else if (e.key === 'Escape') {
+        setSelectedStory(null);
+        setHighlightStories([]);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedStory, handlePrevStory, handleNextStory]);
 
   const tabs = [
     { id: 'posts', label: 'POSTS', icon: <Grid size={12} /> },
@@ -214,7 +284,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
           )}
           {highlights.length > 0
             ? highlights.map(highlight => (
-                <div key={highlight.id} className="profile-highlight">
+                <div 
+                  key={highlight.id} 
+                  className="profile-highlight"
+                  onClick={() => handleHighlightClick(highlight)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="profile-highlight-circle">
                     {highlight.coverImage ? (
                       <img src={highlight.coverImage} alt={highlight.name} />
@@ -291,6 +366,211 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
           )}
         </div>
       </div>
+
+      {/* Story Modal */}
+      {selectedStory && (
+        <div 
+          className="story-modal-overlay"
+          onClick={() => {
+            setSelectedStory(null);
+            setHighlightStories([]);
+          }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div 
+            className="story-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: '420px',
+              width: '100%',
+              maxHeight: '90vh',
+              backgroundColor: '#000',
+              borderRadius: '8px',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Progress bar */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              backgroundColor: 'rgba(255,255,255,0.3)',
+              zIndex: 10,
+            }}>
+              <div style={{
+                height: '100%',
+                backgroundColor: '#fff',
+                width: `${((storyIndex + 1) / highlightStories.length) * 100}%`,
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+
+            {/* Header */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '12px',
+              right: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              zIndex: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img
+                  src={selectedStory.user.avatar || 'https://via.placeholder.com/40'}
+                  alt={selectedStory.user.username}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                  }}
+                />
+                <span style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>
+                  {selectedStory.user.username}
+                </span>
+                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>
+                  {new Date(selectedStory.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedStory(null);
+                  setHighlightStories([]);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  padding: '8px',
+                }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Story Image */}
+            <img
+              src={selectedStory.imageUrl || 'https://via.placeholder.com/420x700'}
+              alt="Story"
+              style={{
+                width: '100%',
+                height: 'auto',
+                maxHeight: '90vh',
+                objectFit: 'contain',
+              }}
+            />
+
+            {/* Left navigation area (prev) */}
+            <div
+              onClick={handlePrevStory}
+              style={{
+                position: 'absolute',
+                top: '60px',
+                left: 0,
+                bottom: 0,
+                width: '30%',
+                cursor: storyIndex > 0 ? 'pointer' : 'default',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                paddingLeft: '8px',
+              }}
+            >
+              {storyIndex > 0 && (
+                <div style={{
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <ChevronLeft size={20} color="#000" />
+                </div>
+              )}
+            </div>
+
+            {/* Right navigation area (next) */}
+            <div
+              onClick={handleNextStory}
+              style={{
+                position: 'absolute',
+                top: '60px',
+                right: 0,
+                bottom: 0,
+                width: '30%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                paddingRight: '8px',
+              }}
+            >
+              <div style={{
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <ChevronRight size={20} color="#000" />
+              </div>
+            </div>
+
+            {/* Story counter */}
+            {highlightStories.length > 1 && (
+              <div style={{
+                position: 'absolute',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                color: 'rgba(255,255,255,0.8)',
+                fontSize: '12px',
+              }}>
+                {storyIndex + 1} / {highlightStories.length}
+              </div>
+            )}
+
+            {/* Loading overlay */}
+            {loadingStories && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 20,
+              }}>
+                <span style={{ color: '#fff' }}>Loading stories...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

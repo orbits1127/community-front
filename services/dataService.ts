@@ -86,7 +86,7 @@ export const authService = {
 // ============================================================================
 export const userService = {
   async getProfile(userId: string): Promise<ApiResponse<UserProfile>> {
-    return fetchApi<UserProfile>(`/users/${userId}/profile`);
+    return fetchApi<UserProfile>(`/users/${userId}`);
   },
 
   async getProfileByUsername(username: string): Promise<ApiResponse<UserProfile>> {
@@ -129,8 +129,10 @@ export const userService = {
 // Post Service
 // ============================================================================
 export const postService = {
-  async getFeed(page = 1): Promise<ApiResponse<PaginatedResponse<Post>>> {
-    return fetchApi<PaginatedResponse<Post>>(`/posts/feed?page=${page}`);
+  async getFeed(page = 1, userId?: string): Promise<ApiResponse<PaginatedResponse<Post>>> {
+    const params = new URLSearchParams({ page: String(page) });
+    if (userId) params.set('userId', userId);
+    return fetchApi<PaginatedResponse<Post>>(`/posts/feed?${params.toString()}`);
   },
 
   async getPost(postId: string): Promise<ApiResponse<Post>> {
@@ -246,6 +248,10 @@ export const storyService = {
 export const highlightService = {
   async getHighlights(userId: string): Promise<ApiResponse<Highlight[]>> {
     return fetchApi<Highlight[]>(`/users/${userId}/highlights`);
+  },
+
+  async getHighlightStories(userId: string, highlightId: string): Promise<ApiResponse<Story[]>> {
+    return fetchApi<Story[]>(`/users/${userId}/highlights/${highlightId}/stories`);
   },
 
   async createHighlight(data: { name: string; storyIds: string[] }): Promise<ApiResponse<Highlight>> {

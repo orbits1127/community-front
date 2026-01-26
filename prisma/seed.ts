@@ -222,6 +222,23 @@ async function main() {
   let postImageIndex = 0;
   let captionIndex = 0;
 
+  // test 유저의 게시물 5개 생성
+  for (let i = 0; i < 5; i++) {
+    const post = await prisma.post.create({
+      data: {
+        userId: testUser.id,
+        imageUrl: sampleImages.posts[postImageIndex % sampleImages.posts.length],
+        caption: captions[captionIndex % captions.length],
+        location: ['서울', '부산', '제주도', '강릉', '경주'][Math.floor(Math.random() * 5)],
+        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // 최근 7일 내
+      },
+    });
+    posts.push(post);
+    postImageIndex++;
+    captionIndex++;
+  }
+
+  // 친구들의 게시물 생성
   for (const friend of friends) {
     // 각 친구당 3개의 게시물
     for (let i = 0; i < 3; i++) {
@@ -240,7 +257,7 @@ async function main() {
     }
   }
 
-  console.log(`✅ ${posts.length}개의 게시물 생성 완료`);
+  console.log(`✅ ${posts.length}개의 게시물 생성 완료 (test 유저: 5개, 친구들: ${friends.length * 3}개)`);
 
   // ============================================================================
   // 4. 스토리 생성 (24시간 유효)
@@ -251,6 +268,18 @@ async function main() {
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24시간 후
 
   let storyImageIndex = 0;
+
+  // test 유저 스토리 1개 (하이라이트용)
+  const testStory = await prisma.story.create({
+    data: {
+      userId: testUser.id,
+      imageUrl: sampleImages.stories[storyImageIndex % sampleImages.stories.length],
+      createdAt: new Date(now.getTime() - Math.random() * 12 * 60 * 60 * 1000),
+      expiresAt: expiresAt,
+    },
+  });
+  storyImageIndex++;
+
   for (const friend of friends) {
     // 각 친구당 1~2개의 스토리
     const storyCount = Math.random() > 0.5 ? 2 : 1;
@@ -478,31 +507,46 @@ async function main() {
   // ============================================================================
   console.log('⭐ 하이라이트 생성 중...');
 
+  // test 유저 하이라이트 1개
+  const testHighlight = await prisma.highlight.create({
+    data: {
+      userId: testUser.id,
+      name: '일상 ✨',
+      coverImage: testStory.imageUrl,
+    },
+  });
+  await prisma.highlightStory.create({
+    data: {
+      highlightId: testHighlight.id,
+      storyId: testStory.id,
+    },
+  });
+
   // 첫 번째 친구의 하이라이트
-  const stories = await prisma.story.findMany({
+  const friendStories = await prisma.story.findMany({
     where: { userId: friends[0].id },
   });
 
-  if (stories.length > 0) {
-    const highlight = await prisma.highlight.create({
+  if (friendStories.length > 0) {
+    const friendHighlight = await prisma.highlight.create({
       data: {
         userId: friends[0].id,
         name: '여행 🌴',
-        coverImage: stories[0].imageUrl,
+        coverImage: friendStories[0].imageUrl,
       },
     });
 
-    for (const story of stories) {
+    for (const story of friendStories) {
       await prisma.highlightStory.create({
         data: {
-          highlightId: highlight.id,
+          highlightId: friendHighlight.id,
           storyId: story.id,
         },
       });
     }
   }
 
-  console.log('✅ 하이라이트 생성 완료');
+  console.log('✅ 하이라이트 생성 완료 (test 유저: 1개)');
 
   // ============================================================================
   // 완료 메시지

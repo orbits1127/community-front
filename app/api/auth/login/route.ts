@@ -4,13 +4,22 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const { email, username: usernameParam, password } = body;
+    const loginId = usernameParam ?? email;
+
+    if (!loginId || !password) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
 
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email },
-          { username: email },
+          { email: loginId },
+          { username: loginId },
         ],
       },
     });

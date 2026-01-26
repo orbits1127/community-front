@@ -31,10 +31,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/users/[id]/route.js"
     ],
-    "/_not-found/page": [
+    "/api/users/[id]/posts/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/api/users/[id]/posts/route.js"
+    ],
+    "/api/users/[id]/highlights/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/users/[id]/highlights/route.js"
+    ],
+    "/api/users/[id]/highlights/[highlightId]/stories/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/users/[id]/highlights/[highlightId]/stories/route.js"
     ]
   }
 }

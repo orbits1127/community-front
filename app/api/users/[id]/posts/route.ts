@@ -30,19 +30,26 @@ export async function GET(
 
     const total = await prisma.post.count({ where: { userId } });
 
+    const items = posts.map(post => {
+      const { _count, ...rest } = post;
+      return {
+        ...rest,
+        likes: _count.likes,
+        commentsCount: _count.comments,
+      };
+    });
+
+    const pagination = {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+    };
+
     return NextResponse.json({
       success: true,
-      data: posts.map(post => ({
-        ...post,
-        likesCount: post._count.likes,
-        commentsCount: post._count.comments,
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      data: { items, pagination },
     });
   } catch (error) {
     console.error('Get user posts error:', error);
