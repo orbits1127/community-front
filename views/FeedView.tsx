@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Post, Story, Suggestion, User } from '../types';
+import { Post, Story, Suggestion, AuthUser, User } from '../types';
 import { postService, storyService, userService, messageService } from '../services/dataService';
 
 interface FeedViewProps {
-  currentUser?: User | null;
+  currentUser?: AuthUser | null;
   onOpenComments: (post: Post) => void;
 }
 
@@ -171,6 +171,8 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
 
   // Handle post save with animation
   const handleSave = useCallback(async (postId: string, isSaved: boolean) => {
+    if (!currentUser?.id) return;
+
     // Trigger animation
     if (!isSaved) {
       setSaveAnimations(prev => ({ ...prev, [postId]: true }));
@@ -188,9 +190,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
     
     try {
       if (isSaved) {
-        await postService.unsavePost(postId);
+        await postService.unsavePost(postId, currentUser.id);
       } else {
-        await postService.savePost(postId);
+        await postService.savePost(postId, currentUser.id);
       }
     } catch (err) {
       console.error('Error toggling save:', err);
@@ -201,7 +203,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
         )
       );
     }
-  }, []);
+  }, [currentUser?.id]);
 
   // Handle share button click
   const handleShareClick = useCallback((post: Post) => {

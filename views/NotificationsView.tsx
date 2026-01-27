@@ -5,7 +5,7 @@ import { Notification } from '../types';
 import { AuthUser } from '../types';
 import { notificationService } from '../services/dataService';
 import { formatTimeAgo, groupNotificationsByTime } from '../utils/timeUtils';
-import { Heart } from 'lucide-react';
+import { Heart, UserPlus } from 'lucide-react';
 
 interface NotificationsViewProps {
   currentUser?: AuthUser | null;
@@ -16,11 +16,109 @@ interface NotificationItemProps {
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({ notification }) => {
+  const isOwnActivity = notification.isOwnActivity || false;
+  
+  // Handle follow notifications
+  if (notification.type === 'follow') {
+    const displayUser = isOwnActivity && notification.followedUser
+      ? notification.followedUser
+      : notification.actor;
+
+    return (
+      <div className="notification-item">
+        {/* Actor Avatar */}
+        <div className="notification-item__avatar">
+          {displayUser.avatar ? (
+            <img 
+              src={displayUser.avatar} 
+              alt={displayUser.username}
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                objectFit: 'cover'
+              }}
+            />
+          ) : (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              backgroundColor: 'var(--ig-elevated-separator)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--ig-primary-text)',
+              fontSize: '18px',
+              fontWeight: 600
+            }}>
+              {displayUser.username.charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
+        
+        <div className="notification-item__content">
+          {/* Notification Text */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px', 
+            flexWrap: 'wrap',
+            fontSize: '14px',
+            lineHeight: '1.4'
+          }}>
+            {isOwnActivity ? (
+              <>
+                <span style={{ fontWeight: 600, color: 'var(--ig-primary-text)' }}>
+                  내가
+                </span>
+                {notification.followedUser && (
+                  <>
+                    <span style={{ fontWeight: 600, color: 'var(--ig-primary-text)' }}>
+                      {notification.followedUser.username}
+                    </span>
+                    <span style={{ color: 'var(--ig-primary-text)' }}>님을</span>
+                  </>
+                )}
+                <UserPlus 
+                  size={14} 
+                  fill="currentColor" 
+                  color="currentColor"
+                  style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 2px' }}
+                />
+                <span style={{ color: 'var(--ig-primary-text)' }}>팔로우하기 시작했습니다</span>
+              </>
+            ) : (
+              <>
+                <span style={{ fontWeight: 600, color: 'var(--ig-primary-text)' }}>
+                  {notification.actor.username}
+                </span>
+                <span style={{ color: 'var(--ig-primary-text)' }}>님이</span>
+                <UserPlus 
+                  size={14} 
+                  fill="currentColor" 
+                  color="currentColor"
+                  style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 2px' }}
+                />
+                <span style={{ color: 'var(--ig-primary-text)' }}>팔로우하기 시작했습니다</span>
+              </>
+            )}
+          </div>
+          {/* Time */}
+          <span className="notification-item__time">{formatTimeAgo(notification.createdAt)}</span>
+        </div>
+
+        {/* No action for follow notifications */}
+        <div className="notification-item__action" style={{ display: 'none' }}></div>
+      </div>
+    );
+  }
+
+  // Handle like notifications
   if (notification.type !== 'like' || !notification.post) {
     return null;
   }
 
-  const isOwnActivity = notification.isOwnActivity || false;
   const displayUser = isOwnActivity && notification.postOwner 
     ? notification.postOwner 
     : notification.actor;
@@ -158,9 +256,11 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
         const response = await notificationService.getNotifications(currentUser.id, 1, 100);
         
         if (response.success && response.data) {
-          // Filter only 'like' type notifications
-          const likeNotifications = response.data.filter(n => n.type === 'like');
-          setNotifications(likeNotifications);
+          // Filter 'like' and 'follow' type notifications
+          const filteredNotifications = response.data.filter(n => 
+            n.type === 'like' || n.type === 'follow'
+          );
+          setNotifications(filteredNotifications);
         } else {
           setError(response.error || 'Failed to load notifications');
         }
@@ -223,7 +323,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
             textAlign: 'center', 
             color: 'var(--ig-secondary-text)' 
           }}>
-            좋아요 알림이 없습니다
+            알림이 없습니다
           </div>
         ) : (
           <>

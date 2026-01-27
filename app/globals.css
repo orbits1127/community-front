@@ -348,8 +348,10 @@ button {
 .explore-page { width: 100%; max-width: var(--explore-max-width); padding: 24px 20px; margin: 0 auto; }
 .explore-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
 .explore-card { position: relative; aspect-ratio: 1 / 1; background-color: var(--ig-elevated-separator); cursor: pointer; overflow: hidden; }
-.explore-card__overlay { position: absolute; inset: 0; background-color: var(--ig-hover-overlay); display: flex; align-items: center; justify-content: center; gap: 30px; opacity: 0; transition: opacity 0.1s ease-out; }
+.explore-card__overlay { position: absolute; inset: 0; background-color: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; gap: 30px; opacity: 0; transition: opacity 0.1s ease-out; }
 .explore-card:hover .explore-card__overlay { opacity: 1; }
+.explore-card__stat { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 16px; font-weight: 600; }
+.explore-card__stat svg { fill: #fff; color: #fff; }
 .explore-card__stat-placeholder { display: flex; align-items: center; gap: 8px; }
 .explore-card__icon-shape { width: 20px; height: 20px; background-color: #fff; border-radius: 2px; }
 .explore-card__text-shape { width: 30px; height: 12px; background-color: #fff; border-radius: 2px; }

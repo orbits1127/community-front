@@ -113,9 +113,9 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
     
     try {
       if (isSaved) {
-        await postService.unsavePost(postId);
+        await postService.unsavePost(postId, currentUser.id);
       } else {
-        await postService.savePost(postId);
+        await postService.savePost(postId, currentUser.id);
       }
     } catch (err) {
       console.error('Error toggling save:', err);
@@ -169,11 +169,11 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
               )}
               <div className="explore-card__overlay">
                 <div className="explore-card__stat">
-                  <Heart size={20} fill="white" />
+                  <Heart size={20} fill="#fff" color="#fff" />
                   <span>{post.likes.toLocaleString()}</span>
                 </div>
                 <div className="explore-card__stat">
-                  <MessageCircle size={20} fill="white" />
+                  <MessageCircle size={20} fill="#fff" color="#fff" />
                   <span>{post.commentsCount}</span>
                 </div>
               </div>

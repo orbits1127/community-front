@@ -102,6 +102,7 @@ export interface Notification {
   createdAt: string;
   isOwnActivity?: boolean; // Flag to indicate if this is user's own activity
   postOwner?: User; // Post owner info (for own activities)
+  followedUser?: User; // User being followed (for follow activities)
 }
 
 // ============================================================================

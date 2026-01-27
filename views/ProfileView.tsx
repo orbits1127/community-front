@@ -15,9 +15,11 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, currentUser }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [activeTab, setActiveTab] = useState('posts');
   const [loading, setLoading] = useState(true);
+  const [loadingSaved, setLoadingSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Story modal state
@@ -70,6 +72,33 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
 
     fetchProfileData();
   }, [userId]);
+
+  // Fetch saved posts when saved tab is active
+  useEffect(() => {
+    const fetchSavedPosts = async () => {
+      if (activeTab !== 'saved' || !userId || !isOwnProfile) {
+        return;
+      }
+
+      setLoadingSaved(true);
+      try {
+        const savedRes = await postService.getSavedPosts(userId, 1);
+        if (savedRes.success && savedRes.data) {
+          const items = Array.isArray(savedRes.data)
+            ? savedRes.data
+            : (savedRes.data as { items?: Post[] })?.items ?? [];
+          setSavedPosts(items);
+        }
+      } catch (err) {
+        console.error('Error loading saved posts:', err);
+        setSavedPosts([]);
+      } finally {
+        setLoadingSaved(false);
+      }
+    };
+
+    fetchSavedPosts();
+  }, [activeTab, userId, isOwnProfile]);
 
   // Handle follow/unfollow
   const handleFollowToggle = async () => {
@@ -332,7 +361,84 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
 
         {/* Posts Grid */}
         <div className="profile-grid">
-          {loading ? (
+          {activeTab === 'saved' ? (
+            // Saved posts view
+            loadingSaved ? (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--ig-secondary-text)' }}>
+                Loading...
+              </div>
+            ) : savedPosts.length > 0 ? (
+              savedPosts.map(post => (
+                <div 
+                  key={post.id} 
+                  className="profile-post"
+                  onClick={async () => {
+                    const originalCommentsCount = post.commentsCount;
+                    setLoadingPost(true);
+                    try {
+                      const postRes = await postService.getPost(post.id);
+                      if (postRes.success && postRes.data) {
+                        setSelectedPost({
+                          ...postRes.data,
+                          commentsCount: originalCommentsCount,
+                        });
+                      } else {
+                        if (profile) {
+                          setSelectedPost({
+                            ...post,
+                            user: post.user || {
+                              id: profile.id,
+                              username: profile.username,
+                              fullName: profile.fullName,
+                              avatar: profile.avatar,
+                            },
+                          });
+                        }
+                      }
+                    } catch (err) {
+                      console.error('Error loading post:', err);
+                      if (profile) {
+                        setSelectedPost({
+                          ...post,
+                          user: post.user || {
+                            id: profile.id,
+                            username: profile.username,
+                            fullName: profile.fullName,
+                            avatar: profile.avatar,
+                          },
+                        });
+                      }
+                    } finally {
+                      setLoadingPost(false);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {post.imageUrl ? (
+                    <img src={post.imageUrl} alt={`Post ${post.id}`} />
+                  ) : (
+                    <div className="profile-post-placeholder"></div>
+                  )}
+                  <div className="profile-post-overlay">
+                    <div className="profile-post-stats">
+                      <span className="profile-post-stat">
+                        <Heart size={19} fill="white" />
+                        {post.likes.toLocaleString()}
+                      </span>
+                      <span className="profile-post-stat">
+                        <MessageCircle size={19} fill="white" />
+                        {post.commentsCount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--ig-secondary-text)' }}>
+                저장된 게시물이 없습니다
+              </div>
+            )
+          ) : loading ? (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--ig-secondary-text)' }}>
               Loading...
             </div>

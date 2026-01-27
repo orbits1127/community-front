@@ -77,6 +77,21 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Get follows where user is the follower (user's own follow activities)
+    const userFollows = await prisma.follow.findMany({
+      where: { followerId: userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        following: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
     // Transform likes into notification-like objects
     const likeActivities = userLikes.map(like => ({
       id: `like-${like.id}`,
@@ -100,6 +115,26 @@ export async function GET(request: NextRequest) {
       postOwner: like.post.user, // Post owner info for display
     }));
 
+    // Transform follows into notification-like objects
+    const followActivities = userFollows.map(follow => ({
+      id: `follow-${follow.id}`,
+      type: 'follow' as const,
+      actorId: userId,
+      actor: {
+        id: currentUser.id,
+        username: currentUser.username,
+        avatar: currentUser.avatar,
+      },
+      recipientId: follow.followingId,
+      postId: null,
+      post: null,
+      message: null,
+      isRead: true, // User's own activities are always "read"
+      createdAt: follow.createdAt.toISOString(),
+      isOwnActivity: true, // Flag to indicate this is user's own activity
+      followedUser: follow.following, // User being followed
+    }));
+
     // Combine and sort all notifications by date
     const allNotifications = [
       ...receivedNotifications.map(n => ({
@@ -108,6 +143,7 @@ export async function GET(request: NextRequest) {
         isOwnActivity: false,
       })),
       ...likeActivities,
+      ...followActivities,
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     // Apply pagination

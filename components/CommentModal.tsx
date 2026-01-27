@@ -265,16 +265,16 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
               <button 
                 className={`modal-action-btn ${currentPost.isSaved ? 'modal-action-btn--saved' : ''}`}
                 onClick={async () => {
-                  if (!currentUser) return;
+                  if (!currentUser?.id) return;
                   try {
                     if (currentPost.isSaved) {
-                      await postService.unsavePost(currentPost.id);
+                      await postService.unsavePost(currentPost.id, currentUser.id);
                       setCurrentPost(prev => ({
                         ...prev,
                         isSaved: false,
                       }));
                     } else {
-                      await postService.savePost(currentPost.id);
+                      await postService.savePost(currentPost.id, currentUser.id);
                       setCurrentPost(prev => ({
                         ...prev,
                         isSaved: true,

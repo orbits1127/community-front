@@ -176,16 +176,26 @@ export const postService = {
     return fetchApi<void>(`/posts/${postId}/unlike`, { method: 'POST' });
   },
 
-  async savePost(postId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/posts/${postId}/save`, { method: 'POST' });
+  async savePost(postId: string, userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/posts/${postId}/save`, { 
+      method: 'POST',
+      body: JSON.stringify({ userId })
+    });
   },
 
-  async unsavePost(postId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/posts/${postId}/unsave`, { method: 'POST' });
+  async unsavePost(postId: string, userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/posts/${postId}/save`, { 
+      method: 'DELETE',
+      body: JSON.stringify({ userId })
+    });
   },
 
-  async getSavedPosts(page = 1): Promise<ApiResponse<PaginatedResponse<Post>>> {
-    return fetchApi<PaginatedResponse<Post>>(`/posts/saved?page=${page}`);
+  async getSavedPosts(userId: string, page = 1): Promise<ApiResponse<PaginatedResponse<Post>>> {
+    const params = new URLSearchParams({ 
+      userId, 
+      page: String(page)
+    });
+    return fetchApi<PaginatedResponse<Post>>(`/posts/saved?${params.toString()}`);
   },
 
   async getExplorePosts(page = 1, userId?: string, limit = 18): Promise<ApiResponse<PaginatedResponse<Post>>> {

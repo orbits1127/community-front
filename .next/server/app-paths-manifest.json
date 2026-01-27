@@ -1,5 +1,11 @@
 {
+  "/api/posts/[id]/save/route": "app/api/posts/[id]/save/route.js",
+  "/api/users/[id]/posts/route": "app/api/users/[id]/posts/route.js",
+  "/api/users/[id]/highlights/route": "app/api/users/[id]/highlights/route.js",
   "/api/users/[id]/route": "app/api/users/[id]/route.js",
-  "/api/posts/explore/route": "app/api/posts/explore/route.js",
+  "/api/stories/route": "app/api/stories/route.js",
+  "/api/posts/feed/route": "app/api/posts/feed/route.js",
+  "/api/users/suggestions/route": "app/api/users/suggestions/route.js",
+  "/api/posts/saved/route": "app/api/posts/saved/route.js",
   "/page": "app/page.js"
 }
