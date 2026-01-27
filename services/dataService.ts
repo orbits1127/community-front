@@ -150,7 +150,7 @@ export const postService = {
     return fetchApi<PaginatedResponse<Post>>(`/users/${userId}/posts?page=${page}`);
   },
 
-  async createPost(data: { imageUrl: string; caption: string; location?: string }): Promise<ApiResponse<Post>> {
+  async createPost(data: { userId: string; imageUrl: string; caption: string; location?: string }): Promise<ApiResponse<Post>> {
     return fetchApi<Post>('/posts', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -237,8 +237,9 @@ export const commentService = {
 // Story Service
 // ============================================================================
 export const storyService = {
-  async getStories(): Promise<ApiResponse<Story[]>> {
-    return fetchApi<Story[]>('/stories');
+  async getStories(userId?: string): Promise<ApiResponse<Story[]>> {
+    const params = userId ? `?userId=${userId}` : '';
+    return fetchApi<Story[]>(`/stories${params}`);
   },
 
   async getUserStories(userId: string): Promise<ApiResponse<Story[]>> {

@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedPost, setSelectedPost] = useState<PostType | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Set mounted flag to prevent hydration mismatch
   useEffect(() => {
@@ -86,6 +87,12 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Handle post creation - refresh feeds
+  const handlePostCreated = useCallback(() => {
+    // Trigger refresh by updating key
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
   // Prevent hydration mismatch by showing consistent initial render
   if (!isMounted || isAuthLoading) {
     return (
@@ -112,6 +119,7 @@ const App: React.FC = () => {
       case 'home':
         return (
           <FeedView
+            key={`feed-${refreshKey}`}
             currentUser={currentUser}
             onOpenComments={setSelectedPost}
           />
@@ -129,6 +137,7 @@ const App: React.FC = () => {
       case 'profile':
         return (
           <ProfileView
+            key={`profile-${refreshKey}`}
             userId={currentUser?.id}
             isOwnProfile={true}
             currentUser={currentUser}
@@ -139,6 +148,7 @@ const App: React.FC = () => {
       default:
         return (
           <FeedView
+            key={`feed-${refreshKey}`}
             currentUser={currentUser}
             onOpenComments={setSelectedPost}
           />
@@ -160,7 +170,11 @@ const App: React.FC = () => {
         />
       )}
       {showCreateModal && (
-        <CreateModal onClose={() => setShowCreateModal(false)} />
+        <CreateModal 
+          onClose={() => setShowCreateModal(false)}
+          currentUser={currentUser}
+          onPostCreated={handlePostCreated}
+        />
       )}
     </div>
   );

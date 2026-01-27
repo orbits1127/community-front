@@ -88,16 +88,23 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
         // userId 전달 시 팔로우한 사람 + 본인 포스트만 조회
         const [postsRes, storiesRes, suggestionsRes] = await Promise.all([
           postService.getFeed(1, currentUser?.id),
-          storyService.getStories(),
+          storyService.getStories(currentUser?.id),
           userService.getSuggestions(currentUser?.id),
         ]);
 
         if (postsRes.success && postsRes.data) {
           setPosts(postsRes.data.items);
         }
+        
+        // Always set stories, even if empty or failed
         if (storiesRes.success && storiesRes.data) {
           setStories(storiesRes.data);
+        } else {
+          // If API fails, log error and set empty array to show placeholders
+          console.error('Failed to load stories:', storiesRes.error);
+          setStories([]);
         }
+        
         if (suggestionsRes.success && suggestionsRes.data) {
           setSuggestions(suggestionsRes.data);
         } else {
