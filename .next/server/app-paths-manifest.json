@@ -1,10 +1,16 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/login/route": "app/api/auth/login/route.js",
-  "/api/stories/route": "app/api/stories/route.js",
   "/api/posts/feed/route": "app/api/posts/feed/route.js",
+  "/api/stories/route": "app/api/stories/route.js",
   "/api/users/suggestions/route": "app/api/users/suggestions/route.js",
+  "/api/users/[id]/route": "app/api/users/[id]/route.js",
+  "/api/users/[id]/posts/route": "app/api/users/[id]/posts/route.js",
+  "/api/users/[id]/highlights/route": "app/api/users/[id]/highlights/route.js",
   "/api/posts/route": "app/api/posts/route.js",
-  "/api/posts/[id]/comments/route": "app/api/posts/[id]/comments/route.js",
+  "/api/posts/[id]/like/route": "app/api/posts/[id]/like/route.js",
+  "/api/notifications/route": "app/api/notifications/route.js",
+  "/api/posts/[id]/save/route": "app/api/posts/[id]/save/route.js",
+  "/api/posts/saved/route": "app/api/posts/saved/route.js",
   "/page": "app/page.js"
 }

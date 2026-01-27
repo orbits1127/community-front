@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       expiresAt: { gt: new Date() },
     };
 
-    // If userId is provided, filter by followed users
+    // If userId is provided, try to filter by followed users
     if (userId) {
       const following = await prisma.follow.findMany({
         where: { followerId: userId },
@@ -20,7 +20,14 @@ export async function GET(request: NextRequest) {
 
       const followingIds = following.map(f => f.followingId);
       followingIds.push(userId); // Include own stories
-      whereClause.userId = { in: followingIds };
+      
+      // Only filter by userId if user has following relationships
+      // If no follows, show all active stories (better UX)
+      if (following.length > 0) {
+        whereClause.userId = { in: followingIds };
+      }
+      // If no follows, whereClause remains as { expiresAt: { gt: new Date() } }
+      // which will return all active stories
     }
 
     // Get stories that haven't expired
@@ -41,6 +48,8 @@ export async function GET(request: NextRequest) {
         } : false,
       },
     });
+
+    console.log(`[Stories API] Found ${stories.length} stories for userId: ${userId || 'none'}`);
 
     // Transform to expected format matching Story type
     const transformedStories = stories.map(story => {

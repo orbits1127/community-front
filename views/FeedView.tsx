@@ -98,10 +98,11 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
         
         // Always set stories, even if empty or failed
         if (storiesRes.success && storiesRes.data) {
+          console.log('[FeedView] Stories loaded:', storiesRes.data.length);
           setStories(storiesRes.data);
         } else {
           // If API fails, log error and set empty array to show placeholders
-          console.error('Failed to load stories:', storiesRes.error);
+          console.error('[FeedView] Failed to load stories:', storiesRes.error);
           setStories([]);
         }
         
