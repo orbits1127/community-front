@@ -8,9 +8,10 @@ import { postService, storyService, userService, messageService } from '../servi
 interface FeedViewProps {
   currentUser?: AuthUser | null;
   onOpenComments: (post: Post) => void;
+  refreshKey?: number;
 }
 
-const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
+const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refreshKey }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -124,7 +125,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
     };
 
     fetchFeedData();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, refreshKey]);
 
   // Handle post like with animation
   const handleLike = useCallback(async (postId: string, isLiked: boolean) => {

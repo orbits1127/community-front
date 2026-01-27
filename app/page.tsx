@@ -122,6 +122,7 @@ const App: React.FC = () => {
             key={`feed-${refreshKey}`}
             currentUser={currentUser}
             onOpenComments={setSelectedPost}
+            refreshKey={refreshKey}
           />
         );
       case 'search':
@@ -151,6 +152,7 @@ const App: React.FC = () => {
             key={`feed-${refreshKey}`}
             currentUser={currentUser}
             onOpenComments={setSelectedPost}
+            refreshKey={refreshKey}
           />
         );
     }

@@ -1,10 +1,6 @@
 {
-  "/api/posts/[id]/like/route": "app/api/posts/[id]/like/route.js",
   "/api/users/[id]/route": "app/api/users/[id]/route.js",
   "/api/users/[id]/posts/route": "app/api/users/[id]/posts/route.js",
   "/api/users/[id]/highlights/route": "app/api/users/[id]/highlights/route.js",
-  "/api/posts/feed/route": "app/api/posts/feed/route.js",
-  "/api/stories/route": "app/api/stories/route.js",
-  "/api/users/suggestions/route": "app/api/users/suggestions/route.js",
   "/page": "app/page.js"
 }
