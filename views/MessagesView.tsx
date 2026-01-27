@@ -75,38 +75,50 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   }, [currentUser?.id]);
 
   // Fetch messages for selected conversation
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!selectedConversation?.id) return;
+  const fetchMessages = useCallback(async (conversationId: string) => {
+    setLoadingMessages(true);
+    try {
+      const response = await fetch(`/api/messages/${conversationId}`);
+      const data = await response.json();
       
-      setLoadingMessages(true);
-      try {
-        const response = await fetch(`/api/messages/${selectedConversation.id}`);
-        const data = await response.json();
+      if (data.success && data.data) {
+        // Transform API response to Message type
+        const formattedMessages: Message[] = data.data.map((msg: any) => ({
+          id: msg.id,
+          conversationId: msg.conversationId,
+          senderId: msg.senderId,
+          sender: msg.sender || { id: msg.senderId, username: 'unknown', avatar: '', fullName: 'Unknown' },
+          content: msg.content,
+          isRead: msg.isRead || false,
+          createdAt: msg.createdAt,
+        }));
         
-        if (data.success && data.data) {
-          // Transform API response to Message type
-          const formattedMessages: Message[] = data.data.map((msg: any) => ({
-            id: msg.id,
-            conversationId: msg.conversationId,
-            senderId: msg.senderId,
-            sender: msg.sender || { id: msg.senderId, username: 'unknown', avatar: '', fullName: 'Unknown' },
-            content: msg.content,
-            isRead: msg.isRead || false,
-            createdAt: msg.createdAt,
-          }));
-          
-          setMessages(formattedMessages);
-        }
-      } catch (err) {
-        console.error('Error loading messages:', err);
-      } finally {
-        setLoadingMessages(false);
+        setMessages(formattedMessages);
       }
-    };
+    } catch (err) {
+      console.error('Error loading messages:', err);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
 
-    fetchMessages();
+  // Store conversation ID separately to avoid unnecessary refetches
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedConversation?.id) {
+      setCurrentConversationId(selectedConversation.id);
+    } else {
+      setCurrentConversationId(null);
+      setMessages([]);
+    }
   }, [selectedConversation?.id]);
+
+  useEffect(() => {
+    if (currentConversationId) {
+      fetchMessages(currentConversationId);
+    }
+  }, [currentConversationId, fetchMessages]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -119,80 +131,148 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   const handleSendMessage = useCallback(async () => {
     if (!messageText.trim() || !currentUser?.id || !selectedConversation || sending) return;
 
-    setSending(true);
-    try {
-      const otherParticipant = selectedConversation.participants.find(p => p.id !== currentUser.id);
-      if (!otherParticipant) return;
+    const textToSend = messageText.trim();
+    const conversationId = selectedConversation.id;
+    const otherParticipant = selectedConversation.participants.find(p => p.id !== currentUser.id);
+    
+    if (!otherParticipant) return;
 
+    // Clear input immediately for better UX
+    setMessageText('');
+    setSending(true);
+
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      conversationId: conversationId,
+      senderId: currentUser.id,
+      sender: {
+        id: currentUser.id,
+        username: currentUser.username,
+        fullName: currentUser.fullName || currentUser.username,
+        avatar: currentUser.avatar || '',
+      },
+      content: textToSend,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Add optimistic message immediately
+    setMessages(prev => {
+      // Avoid duplicates
+      if (prev.some(msg => msg.id === optimisticMessage.id)) {
+        return prev;
+      }
+      return [...prev, optimisticMessage];
+    });
+
+    try {
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           senderId: currentUser.id,
           receiverId: otherParticipant.id,
-          content: messageText.trim(),
+          content: textToSend,
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to send message:', errorData);
+        // Remove optimistic message on error
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        setMessageText(textToSend); // Restore text
+        alert(errorData.error || '메시지 전송에 실패했습니다.');
+        return;
+      }
 
       const data = await response.json();
       
       if (data.success && data.data) {
-        // Add new message to list
+        // Transform the new message from server
         const newMessage: Message = {
           id: data.data.id,
-          conversationId: data.data.conversationId,
+          conversationId: data.data.conversationId || conversationId,
           senderId: data.data.senderId,
-          sender: data.data.sender || currentUser,
+          sender: data.data.sender || {
+            id: currentUser.id,
+            username: currentUser.username,
+            fullName: currentUser.fullName || currentUser.username,
+            avatar: currentUser.avatar || '',
+          },
           content: data.data.content,
           isRead: data.data.isRead || false,
-          createdAt: data.data.createdAt,
+          createdAt: data.data.createdAt || new Date().toISOString(),
         };
         
-        setMessages(prev => [...prev, newMessage]);
-        setMessageText('');
-        
-        // Update selected conversation's last message
-        if (selectedConversation) {
-          setSelectedConversation({
-            ...selectedConversation,
-            lastMessage: newMessage,
-            updatedAt: new Date().toISOString(),
-          });
-        }
-        
-        // Refresh conversations to update last message
-        const convResponse = await fetch(`/api/messages?userId=${currentUser.id}`);
-        const convData = await convResponse.json();
-        if (convData.success && convData.data) {
-          const formattedConversations: Conversation[] = convData.data.map((conv: any) => ({
-            id: conv.id,
-            participants: conv.participants || [],
-            lastMessage: conv.lastMessage ? {
-              id: conv.lastMessage.id,
-              conversationId: conv.lastMessage.conversationId,
-              senderId: conv.lastMessage.senderId,
-              sender: conv.lastMessage.sender || conv.participants[0],
-              content: conv.lastMessage.content,
-              isRead: conv.lastMessage.isRead || false,
-              createdAt: conv.lastMessage.createdAt,
-            } : undefined,
-            unreadCount: 0,
-            updatedAt: conv.updatedAt,
-          }));
-          setConversations(formattedConversations);
-          
-          // Update selected conversation if it's in the list
-          const updatedSelected = formattedConversations.find(c => c.id === selectedConversation?.id);
-          if (updatedSelected) {
-            setSelectedConversation(updatedSelected);
+        // Replace optimistic message with real message
+        setMessages(prev => {
+          // Remove optimistic message
+          const filtered = prev.filter(msg => msg.id !== optimisticMessage.id);
+          // Check if message already exists (avoid duplicates)
+          const exists = filtered.some(msg => msg.id === newMessage.id);
+          if (exists) {
+            return filtered;
           }
-        }
+          // Add new message
+          const updated = [...filtered, newMessage];
+          return updated;
+        });
+        
+        // Refresh conversations to update last message (without triggering message refetch)
+        fetch(`/api/messages?userId=${currentUser.id}`)
+          .then(res => res.json())
+          .then(convData => {
+            if (convData.success && convData.data) {
+              const formattedConversations: Conversation[] = convData.data.map((conv: any) => ({
+                id: conv.id,
+                participants: conv.participants || [],
+                lastMessage: conv.lastMessage ? {
+                  id: conv.lastMessage.id,
+                  conversationId: conv.lastMessage.conversationId,
+                  senderId: conv.lastMessage.senderId,
+                  sender: conv.lastMessage.sender || conv.participants[0],
+                  content: conv.lastMessage.content,
+                  isRead: conv.lastMessage.isRead || false,
+                  createdAt: conv.lastMessage.createdAt,
+                } : undefined,
+                unreadCount: 0,
+                updatedAt: conv.updatedAt,
+              }));
+              setConversations(formattedConversations);
+              
+              // Update selected conversation's last message without changing the conversation object
+              // This prevents the useEffect from re-fetching messages
+              setSelectedConversation(prev => {
+                if (!prev || prev.id !== conversationId) return prev;
+                const updatedConv = formattedConversations.find(c => c.id === conversationId);
+                if (updatedConv) {
+                  return {
+                    ...prev,
+                    lastMessage: updatedConv.lastMessage,
+                    updatedAt: updatedConv.updatedAt,
+                  };
+                }
+                return prev;
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Error refreshing conversations:', err);
+          });
       } else {
         console.error('Failed to send message:', data.error);
+        // Remove optimistic message on error
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        setMessageText(textToSend); // Restore text
         alert(data.error || '메시지 전송에 실패했습니다.');
       }
     } catch (err) {
       console.error('Error sending message:', err);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      setMessageText(textToSend); // Restore text
     } finally {
       setSending(false);
     }
@@ -305,12 +385,12 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
                 </div>
               ) : messages.length > 0 ? (
                 <>
-                  {messages.map((message) => {
+                  {messages.map((message, index) => {
                     const isSent = message.senderId === currentUser?.id;
                     
                     return (
                       <div
-                        key={message.id}
+                        key={message.id || `msg-${index}`}
                         style={{
                           display: 'flex',
                           justifyContent: isSent ? 'flex-end' : 'flex-start',
@@ -323,14 +403,15 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
                             maxWidth: '60%',
                             padding: '12px 16px',
                             borderRadius: '22px',
-                            backgroundColor: isSent ? 'var(--ig-primary-button)' : 'var(--ig-secondary-background)',
-                            color: isSent ? 'white' : 'var(--ig-primary-text)',
+                            backgroundColor: isSent ? '#0095f6' : '#efefef',
+                            color: isSent ? 'white' : '#000000',
                             fontSize: '14px',
                             lineHeight: '1.4',
                             wordBreak: 'break-word',
+                            whiteSpace: 'pre-wrap',
                           }}
                         >
-                          {message.content}
+                          {message.content || ''}
                         </div>
                       </div>
                     );
@@ -346,12 +427,23 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
 
             {/* 하단: 메시지 입력창 */}
             <footer className="messages-content__footer">
-              <div className="messages-input-bar" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px' }}>
+              <div className="messages-input-bar" style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                padding: '0 16px',
+                height: '44px',
+                border: '1px solid var(--ig-separator)',
+                borderRadius: '22px',
+                backgroundColor: 'var(--ig-primary-background)',
+              }}>
                 <input
                   type="text"
                   placeholder="메시지 보내기..."
                   value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
+                  onChange={(e) => {
+                    setMessageText(e.target.value);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && messageText.trim() && !sending) {
                       e.preventDefault();
@@ -362,31 +454,46 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
                     flex: 1,
                     padding: '10px 16px',
                     borderRadius: '22px',
-                    border: '1px solid var(--ig-separator)',
-                    backgroundColor: 'var(--ig-primary-background)',
+                    border: 'none',
+                    backgroundColor: 'transparent',
                     color: 'var(--ig-primary-text)',
                     fontSize: '14px',
                     outline: 'none',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.4',
+                    minWidth: 0,
                   }}
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!messageText.trim() || sending}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     padding: '10px',
                     background: 'none',
                     border: 'none',
                     cursor: messageText.trim() && !sending ? 'pointer' : 'not-allowed',
                     opacity: messageText.trim() && !sending ? 1 : 0.5,
                     transition: 'opacity 0.2s',
+                    visibility: 'visible',
+                    minWidth: '44px',
+                    minHeight: '44px',
+                    flexShrink: 0,
                   }}
                   title={messageText.trim() && !sending ? '전송' : '메시지를 입력하세요'}
                 >
                   <Send 
                     size={24} 
-                    color={messageText.trim() && !sending ? 'var(--ig-primary-button)' : 'var(--ig-secondary-text)'} 
+                    color={messageText.trim() && !sending ? '#0095f6' : '#737373'} 
                     style={{
                       transition: 'color 0.2s',
+                      display: 'block',
+                      flexShrink: 0,
+                      pointerEvents: 'none',
+                      width: '24px',
+                      height: '24px',
                     }}
                   />
                 </button>
