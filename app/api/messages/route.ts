@@ -73,6 +73,31 @@ export async function POST(request: NextRequest) {
   try {
     const { senderId, receiverId, content } = await request.json();
 
+    if (!senderId || !receiverId || !content) {
+      return NextResponse.json(
+        { success: false, error: 'senderId, receiverId, and content are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate that both users exist
+    const sender = await prisma.user.findUnique({ where: { id: senderId } });
+    const receiver = await prisma.user.findUnique({ where: { id: receiverId } });
+
+    if (!sender) {
+      return NextResponse.json(
+        { success: false, error: 'Sender user not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!receiver) {
+      return NextResponse.json(
+        { success: false, error: 'Receiver user not found' },
+        { status: 404 }
+      );
+    }
+
     // Find existing conversation between users
     let conversation = await prisma.conversation.findFirst({
       where: {
@@ -110,6 +135,7 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             username: true,
+            fullName: true,
             avatar: true,
           },
         },

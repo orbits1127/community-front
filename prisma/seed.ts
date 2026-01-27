@@ -172,7 +172,7 @@ async function main() {
     }),
   ]);
 
-  // 추천용 유저들 생성 (팔로우하지 않은 유저들)
+  // 추천용 유저들 생성 (팔로우하지 않은 유저들) - Explore 페이지용으로 15명 생성
   const suggestedUsers = await Promise.all([
     prisma.user.create({
       data: {
@@ -222,6 +222,106 @@ async function main() {
         fullName: '추천 유저 5',
         avatar: sampleImages.avatars[4],
         bio: '운동하는 개발자 💪',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested6@example.com',
+        username: 'suggested_user_6',
+        password: hashedPassword,
+        fullName: '추천 유저 6',
+        avatar: sampleImages.avatars[5],
+        bio: '음악을 사랑해요 🎵',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested7@example.com',
+        username: 'suggested_user_7',
+        password: hashedPassword,
+        fullName: '추천 유저 7',
+        avatar: sampleImages.avatars[0],
+        bio: '책 읽는 것을 좋아해요 📚',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested8@example.com',
+        username: 'suggested_user_8',
+        password: hashedPassword,
+        fullName: '추천 유저 8',
+        avatar: sampleImages.avatars[1],
+        bio: '요리를 배우는 중 🍳',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested9@example.com',
+        username: 'suggested_user_9',
+        password: hashedPassword,
+        fullName: '추천 유저 9',
+        avatar: sampleImages.avatars[2],
+        bio: '산책을 즐겨요 🚶',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested10@example.com',
+        username: 'suggested_user_10',
+        password: hashedPassword,
+        fullName: '추천 유저 10',
+        avatar: sampleImages.avatars[3],
+        bio: '영화 감상 중 🎬',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested11@example.com',
+        username: 'suggested_user_11',
+        password: hashedPassword,
+        fullName: '추천 유저 11',
+        avatar: sampleImages.avatars[4],
+        bio: '그림 그리는 중 🎨',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested12@example.com',
+        username: 'suggested_user_12',
+        password: hashedPassword,
+        fullName: '추천 유저 12',
+        avatar: sampleImages.avatars[5],
+        bio: '커피 애호가 ☕',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested13@example.com',
+        username: 'suggested_user_13',
+        password: hashedPassword,
+        fullName: '추천 유저 13',
+        avatar: sampleImages.avatars[0],
+        bio: '자전거 타는 것을 좋아해요 🚴',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested14@example.com',
+        username: 'suggested_user_14',
+        password: hashedPassword,
+        fullName: '추천 유저 14',
+        avatar: sampleImages.avatars[1],
+        bio: '반려동물과 함께 🐕',
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suggested15@example.com',
+        username: 'suggested_user_15',
+        password: hashedPassword,
+        fullName: '추천 유저 15',
+        avatar: sampleImages.avatars[2],
+        bio: '요가를 즐겨요 🧘',
       },
     }),
   ]);
@@ -311,23 +411,25 @@ async function main() {
     }
   }
 
-  // 추천 유저들의 게시물 생성 (각 유저당 1개씩)
+  // 추천 유저들의 게시물 생성 (각 유저당 2개씩 - Explore 페이지에 충분한 포스트 제공)
   for (const suggestedUser of suggestedUsers) {
-    const post = await prisma.post.create({
-      data: {
-        userId: suggestedUser.id,
-        imageUrl: sampleImages.posts[postImageIndex % sampleImages.posts.length],
-        caption: captions[captionIndex % captions.length],
-        location: ['서울', '부산', '제주도', '강릉', '경주'][Math.floor(Math.random() * 5)],
-        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-      },
-    });
-    posts.push(post);
-    postImageIndex++;
-    captionIndex++;
+    for (let i = 0; i < 2; i++) {
+      const post = await prisma.post.create({
+        data: {
+          userId: suggestedUser.id,
+          imageUrl: sampleImages.posts[postImageIndex % sampleImages.posts.length],
+          caption: captions[captionIndex % captions.length],
+          location: ['서울', '부산', '제주도', '강릉', '경주'][Math.floor(Math.random() * 5)],
+          createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+      posts.push(post);
+      postImageIndex++;
+      captionIndex++;
+    }
   }
 
-  console.log(`✅ ${posts.length}개의 게시물 생성 완료 (test 유저: 5개, 친구들: ${friends.length * 3}개, 추천 유저: ${suggestedUsers.length}개)`);
+  console.log(`✅ ${posts.length}개의 게시물 생성 완료 (test 유저: 5개, 친구들: ${friends.length * 3}개, 추천 유저: ${suggestedUsers.length * 2}개)`);
 
   // ============================================================================
   // 4. 스토리 생성 (24시간 유효)
@@ -496,94 +598,85 @@ async function main() {
   console.log('✅ 알림 생성 완료');
 
   // ============================================================================
-  // 8. DM 대화 생성
+  // 8. DM 대화 생성 (팔로우한 모든 친구들과의 대화)
   // ============================================================================
   console.log('✉️ DM 대화 생성 중...');
 
-  // test와 첫 번째 친구의 대화
-  const conversation1 = await prisma.conversation.create({
-    data: {
-      participants: {
-        create: [
-          { userId: testUser.id },
-          { userId: friends[0].id },
-        ],
-      },
-    },
-  });
-
-  await prisma.message.createMany({
-    data: [
-      {
-        conversationId: conversation1.id,
-        senderId: friends[0].id,
-        receiverId: testUser.id,
-        content: '안녕! 오랜만이야 😊',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      },
-      {
-        conversationId: conversation1.id,
-        senderId: testUser.id,
-        receiverId: friends[0].id,
-        content: '오 안녕! 잘 지내지?',
-        createdAt: new Date(Date.now() - 1.5 * 60 * 60 * 1000),
-      },
-      {
-        conversationId: conversation1.id,
-        senderId: friends[0].id,
-        receiverId: testUser.id,
-        content: '응 잘 지내! 요즘 뭐해?',
-        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      },
-      {
-        conversationId: conversation1.id,
-        senderId: testUser.id,
-        receiverId: friends[0].id,
-        content: '그냥 열심히 일하고 있어 ㅋㅋ',
-        createdAt: new Date(Date.now() - 30 * 60 * 1000),
-      },
+  const conversationMessages = [
+    // 친구 1과의 대화
+    [
+      { sender: friends[0], content: '안녕! 오랜만이야 😊', hoursAgo: 2 },
+      { sender: testUser, content: '오 안녕! 잘 지내지?', hoursAgo: 1.5 },
+      { sender: friends[0], content: '응 잘 지내! 요즘 뭐해?', hoursAgo: 1 },
+      { sender: testUser, content: '그냥 열심히 일하고 있어 ㅋㅋ', hoursAgo: 0.5 },
+      { sender: friends[0], content: '고생 많다! 주말에 만날까?', hoursAgo: 0.3 },
+      { sender: testUser, content: '좋아! 토요일 오후 어때?', hoursAgo: 0.2 },
     ],
-  });
-
-  // test와 세 번째 친구의 대화
-  const conversation2 = await prisma.conversation.create({
-    data: {
-      participants: {
-        create: [
-          { userId: testUser.id },
-          { userId: friends[2].id },
-        ],
-      },
-    },
-  });
-
-  await prisma.message.createMany({
-    data: [
-      {
-        conversationId: conversation2.id,
-        senderId: friends[2].id,
-        receiverId: testUser.id,
-        content: '내일 운동 같이 할래?',
-        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      },
-      {
-        conversationId: conversation2.id,
-        senderId: testUser.id,
-        receiverId: friends[2].id,
-        content: '좋아! 몇 시에?',
-        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      },
-      {
-        conversationId: conversation2.id,
-        senderId: friends[2].id,
-        receiverId: testUser.id,
-        content: '저녁 7시 어때?',
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-      },
+    // 친구 2와의 대화
+    [
+      { sender: friends[1], content: '오늘 사진 진짜 예뻐! 📸', hoursAgo: 3 },
+      { sender: testUser, content: '고마워! 너도 올려줘 ㅎㅎ', hoursAgo: 2.5 },
+      { sender: friends[1], content: '나중에 올릴게~', hoursAgo: 2 },
+      { sender: testUser, content: '기대할게! 😊', hoursAgo: 1.8 },
     ],
-  });
+    // 친구 3과의 대화
+    [
+      { sender: friends[2], content: '내일 운동 같이 할래?', hoursAgo: 5 },
+      { sender: testUser, content: '좋아! 몇 시에?', hoursAgo: 4 },
+      { sender: friends[2], content: '저녁 7시 어때?', hoursAgo: 3 },
+      { sender: testUser, content: '완벽해! 그때 보자', hoursAgo: 2.5 },
+      { sender: friends[2], content: '그럼 내일 봐!', hoursAgo: 2 },
+    ],
+    // 친구 4와의 대화
+    [
+      { sender: testUser, content: '저번에 말한 그 맛집 가봤어?', hoursAgo: 6 },
+      { sender: friends[3], content: '아직 안 갔어 ㅠㅠ', hoursAgo: 5.5 },
+      { sender: testUser, content: '이번 주말에 같이 가자!', hoursAgo: 5 },
+      { sender: friends[3], content: '좋아! 약속할게 👍', hoursAgo: 4.5 },
+      { sender: testUser, content: '일요일 점심 어때?', hoursAgo: 4 },
+    ],
+    // 친구 5와의 대화
+    [
+      { sender: friends[4], content: '새로운 영화 봤어?', hoursAgo: 1 },
+      { sender: testUser, content: '아직 안 봤는데 추천해줘!', hoursAgo: 0.8 },
+      { sender: friends[4], content: '이번에 나온 액션 영화 진짜 재밌어', hoursAgo: 0.5 },
+      { sender: testUser, content: '오 좋아! 이번 주말에 볼게', hoursAgo: 0.3 },
+      { sender: friends[4], content: '보고 나서 후기 들려줘!', hoursAgo: 0.2 },
+      { sender: testUser, content: '당연하지! 😄', hoursAgo: 0.1 },
+    ],
+  ];
 
-  console.log('✅ DM 대화 생성 완료');
+  // 모든 친구들과 대화 생성
+  for (let i = 0; i < friends.length; i++) {
+    const friend = friends[i];
+    const messages = conversationMessages[i] || [];
+
+    const conversation = await prisma.conversation.create({
+      data: {
+        participants: {
+          create: [
+            { userId: testUser.id },
+            { userId: friend.id },
+          ],
+        },
+      },
+    });
+
+    // 메시지 생성
+    const messageData = messages.map(msg => ({
+      conversationId: conversation.id,
+      senderId: msg.sender.id,
+      receiverId: msg.sender.id === testUser.id ? friend.id : testUser.id,
+      content: msg.content,
+      createdAt: new Date(Date.now() - msg.hoursAgo * 60 * 60 * 1000),
+    }));
+
+    await prisma.message.createMany({
+      data: messageData,
+    });
+  }
+
+  console.log(`✅ DM 대화 생성 완료 (${friends.length}개 대화)`);
 
   // ============================================================================
   // 9. 하이라이트 생성

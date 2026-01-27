@@ -119,11 +119,11 @@ const App: React.FC = () => {
       case 'search':
         return <SearchView />;
       case 'explore':
-        return <ExploreView />;
+        return <ExploreView currentUser={currentUser} />;
       case 'reels':
         return <ReelsView />;
       case 'messages':
-        return <MessagesView />;
+        return <MessagesView currentUser={currentUser} />;
       case 'notif':
         return <NotificationsView />;
       case 'profile':
@@ -131,6 +131,7 @@ const App: React.FC = () => {
           <ProfileView
             userId={currentUser?.id}
             isOwnProfile={true}
+            currentUser={currentUser}
           />
         );
       case 'settings':

@@ -2,16 +2,17 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Grid, Film, Bookmark, UserSquare2, Settings, Plus, Heart, MessageCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { UserProfile, Post, Highlight, Story } from '../types';
+import { UserProfile, Post, Highlight, Story, AuthUser } from '../types';
 import { userService, postService, highlightService } from '../services/dataService';
 import CommentModal from '../components/CommentModal';
 
 interface ProfileViewProps {
   userId?: string;
   isOwnProfile?: boolean;
+  currentUser?: AuthUser | null;
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, currentUser }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
@@ -629,7 +630,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true }
 
       {/* Comment Modal */}
       {selectedPost && (
-        <CommentModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+        <CommentModal 
+          post={selectedPost} 
+          currentUser={currentUser}
+          onClose={() => setSelectedPost(null)} 
+        />
       )}
     </div>
   );

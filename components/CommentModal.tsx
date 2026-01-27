@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Smile } from 'lucide-react';
 import { Post as PostType, Comment, AuthUser } from '../types';
-import { commentService } from '../services/dataService';
+import { commentService, postService } from '../services/dataService';
 
 interface CommentModalProps {
   post: PostType;
@@ -16,9 +16,15 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
   const [loadingComments, setLoadingComments] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [postingComment, setPostingComment] = useState(false);
+  const [currentPost, setCurrentPost] = useState<PostType>(post);
   
+  // Update currentPost when post prop changes
+  useEffect(() => {
+    setCurrentPost(post);
+  }, [post]);
+
   // Safe access to user data with fallbacks
-  const user = post.user || {
+  const user = currentPost.user || {
     id: '',
     username: 'unknown',
     fullName: 'Unknown User',
@@ -65,7 +71,7 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
     };
 
     fetchComments();
-  }, [post.id, post.commentsCount]);
+  }, [currentPost.id, currentPost.commentsCount]);
 
   // Handle posting a comment
   const handlePostComment = async () => {
@@ -74,7 +80,7 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
     setPostingComment(true);
     try {
       // Create comment via API
-      const response = await fetch(`/api/posts/${post.id}/comments`, {
+      const response = await fetch(`/api/posts/${currentPost.id}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,6 +113,12 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
         // Add new comment at the beginning (most recent first)
         setComments(prev => [newComment, ...prev]);
         
+        // Update comments count
+        setCurrentPost(prev => ({
+          ...prev,
+          commentsCount: prev.commentsCount + 1,
+        }));
+        
         // Clear input
         setCommentText('');
       } else {
@@ -128,7 +140,7 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
       <div className="modal-container" onClick={e => e.stopPropagation()}>
         {/* Left Side - Image */}
         <div className="modal-image-section">
-          <img src={post.imageUrl || 'https://via.placeholder.com/600'} alt="Post" className="modal-image" />
+          <img src={currentPost.imageUrl || 'https://via.placeholder.com/600'} alt="Post" className="modal-image" />
         </div>
 
         {/* Right Side - Details & Comments */}
@@ -147,12 +159,12 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
 
           <div className="modal-comments-section">
             {/* Caption */}
-            {post.caption && (
+            {currentPost.caption && (
               <div className="modal-comment">
                 <img src={avatar} className="modal-comment-avatar" alt={username} />
                 <div className="modal-comment-content">
                   <span className="modal-comment-username">{username}</span>
-                  <span className="modal-comment-text">{post.caption}</span>
+                  <span className="modal-comment-text">{currentPost.caption}</span>
                   <div className="modal-comment-time">1d</div>
                 </div>
               </div>
@@ -197,13 +209,72 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
           <footer className="modal-footer">
             <div className="modal-actions">
               <div className="modal-actions-left">
-                <button className="modal-action-btn" aria-label="Like"><Heart size={24} /></button>
+                <button 
+                  className={`modal-action-btn ${currentPost.isLiked ? 'modal-action-btn--liked' : ''}`}
+                  onClick={async () => {
+                    if (!currentUser) return;
+                    try {
+                      if (currentPost.isLiked) {
+                        await postService.unlikePost(currentPost.id);
+                        setCurrentPost(prev => ({
+                          ...prev,
+                          isLiked: false,
+                          likes: prev.likes - 1,
+                        }));
+                      } else {
+                        await postService.likePost(currentPost.id);
+                        setCurrentPost(prev => ({
+                          ...prev,
+                          isLiked: true,
+                          likes: prev.likes + 1,
+                        }));
+                      }
+                    } catch (err) {
+                      console.error('Error toggling like:', err);
+                    }
+                  }}
+                  aria-label={currentPost.isLiked ? 'Unlike' : 'Like'}
+                >
+                  <Heart 
+                    size={24} 
+                    fill={currentPost.isLiked ? '#ed4956' : 'none'} 
+                    color={currentPost.isLiked ? '#ed4956' : 'currentColor'}
+                  />
+                </button>
                 <button className="modal-action-btn" aria-label="Comment"><MessageCircle size={24} /></button>
                 <button className="modal-action-btn" aria-label="Share"><Send size={24} /></button>
               </div>
-              <button className="modal-action-btn" aria-label="Save"><Bookmark size={24} /></button>
+              <button 
+                className={`modal-action-btn ${currentPost.isSaved ? 'modal-action-btn--saved' : ''}`}
+                onClick={async () => {
+                  if (!currentUser) return;
+                  try {
+                    if (currentPost.isSaved) {
+                      await postService.unsavePost(currentPost.id);
+                      setCurrentPost(prev => ({
+                        ...prev,
+                        isSaved: false,
+                      }));
+                    } else {
+                      await postService.savePost(currentPost.id);
+                      setCurrentPost(prev => ({
+                        ...prev,
+                        isSaved: true,
+                      }));
+                    }
+                  } catch (err) {
+                    console.error('Error toggling save:', err);
+                  }
+                }}
+                aria-label={currentPost.isSaved ? 'Unsave' : 'Save'}
+              >
+                <Bookmark 
+                  size={24} 
+                  fill={currentPost.isSaved ? 'currentColor' : 'none'}
+                />
+              </button>
             </div>
-            <div className="modal-likes">{post.likes.toLocaleString()} likes</div>
+            <div className="modal-likes">{currentPost.likes.toLocaleString()} likes</div>
             <div className="modal-timestamp">1 day ago</div>
             
             <div className="modal-add-comment">

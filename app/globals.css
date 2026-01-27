@@ -229,18 +229,11 @@ button {
 }
 
 .messages-item__username {
-  width: 100px;
-  height: 14px;
-  background-color: var(--ig-elevated-separator);
-  border-radius: 4px;
+  /* Removed placeholder styles - now uses inline styles from component */
 }
 
 .messages-item__last-msg {
-  width: 140px;
-  height: 12px;
-  background-color: var(--ig-elevated-separator);
-  border-radius: 4px;
-  opacity: 0.6;
+  /* Removed placeholder styles - now uses inline styles from component */
 }
 
 /* Right Column: Chat Content */
@@ -267,10 +260,7 @@ button {
 }
 
 .messages-content__header-name {
-  width: 120px;
-  height: 16px;
-  background-color: var(--ig-elevated-separator);
-  border-radius: 4px;
+  /* Removed placeholder styles - now uses inline styles from component */
 }
 
 .messages-content__body {

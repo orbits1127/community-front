@@ -188,8 +188,10 @@ export const postService = {
     return fetchApi<PaginatedResponse<Post>>(`/posts/saved?page=${page}`);
   },
 
-  async getExplorePosts(page = 1): Promise<ApiResponse<PaginatedResponse<Post>>> {
-    return fetchApi<PaginatedResponse<Post>>(`/posts/explore?page=${page}`);
+  async getExplorePosts(page = 1, userId?: string, limit = 18): Promise<ApiResponse<PaginatedResponse<Post>>> {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (userId) params.set('userId', userId);
+    return fetchApi<PaginatedResponse<Post>>(`/posts/explore?${params.toString()}`);
   },
 };
 
