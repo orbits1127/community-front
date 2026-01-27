@@ -17,10 +17,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const notifications = await prisma.notification.findMany({
+    // Get current user info for actor data
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        avatar: true,
+      },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get notifications where user is recipient (received notifications)
+    const receivedNotifications = await prisma.notification.findMany({
       where: { recipientId: userId },
-      skip,
-      take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
         actor: {
@@ -39,9 +55,64 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const total = await prisma.notification.count({
-      where: { recipientId: userId },
+    // Get likes where user is the actor (user's own activities)
+    const userLikes = await prisma.like.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        post: {
+          select: {
+            id: true,
+            imageUrl: true,
+            userId: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
     });
+
+    // Transform likes into notification-like objects
+    const likeActivities = userLikes.map(like => ({
+      id: `like-${like.id}`,
+      type: 'like' as const,
+      actorId: userId,
+      actor: {
+        id: currentUser.id,
+        username: currentUser.username,
+        avatar: currentUser.avatar,
+      },
+      recipientId: like.post.userId,
+      postId: like.post.id,
+      post: {
+        id: like.post.id,
+        imageUrl: like.post.imageUrl,
+      },
+      message: null,
+      isRead: true, // User's own activities are always "read"
+      createdAt: like.createdAt.toISOString(),
+      isOwnActivity: true, // Flag to indicate this is user's own activity
+      postOwner: like.post.user, // Post owner info for display
+    }));
+
+    // Combine and sort all notifications by date
+    const allNotifications = [
+      ...receivedNotifications.map(n => ({
+        ...n,
+        createdAt: n.createdAt.toISOString(),
+        isOwnActivity: false,
+      })),
+      ...likeActivities,
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Apply pagination
+    const total = allNotifications.length;
+    const notifications = allNotifications.slice(skip, skip + limit);
 
     const unreadCount = await prisma.notification.count({
       where: { recipientId: userId, isRead: false },

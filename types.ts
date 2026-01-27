@@ -89,13 +89,19 @@ export interface Suggestion {
 export interface Notification {
   id: string;
   type: 'like' | 'comment' | 'follow' | 'mention' | 'tag';
-  userId: string;
-  user: User;
+  actorId: string;
+  actor: User;
+  recipientId: string;
   postId?: string;
-  post?: Post;
-  message: string;
+  post?: {
+    id: string;
+    imageUrl: string;
+  };
+  message?: string;
   isRead: boolean;
   createdAt: string;
+  isOwnActivity?: boolean; // Flag to indicate if this is user's own activity
+  postOwner?: User; // Post owner info (for own activities)
 }
 
 // ============================================================================

@@ -125,7 +125,7 @@ const App: React.FC = () => {
       case 'messages':
         return <MessagesView currentUser={currentUser} />;
       case 'notif':
-        return <NotificationsView />;
+        return <NotificationsView currentUser={currentUser} />;
       case 'profile':
         return (
           <ProfileView

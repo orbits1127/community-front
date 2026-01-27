@@ -286,16 +286,24 @@ export const highlightService = {
 // Notification Service
 // ============================================================================
 export const notificationService = {
-  async getNotifications(page = 1): Promise<ApiResponse<PaginatedResponse<Notification>>> {
-    return fetchApi<PaginatedResponse<Notification>>(`/notifications?page=${page}`);
+  async getNotifications(userId: string, page = 1, limit = 20): Promise<ApiResponse<Notification[]>> {
+    const params = new URLSearchParams({ 
+      userId, 
+      page: String(page),
+      limit: String(limit)
+    });
+    return fetchApi<Notification[]>(`/notifications?${params.toString()}`);
   },
 
   async markAsRead(notificationId: string): Promise<ApiResponse<void>> {
     return fetchApi<void>(`/notifications/${notificationId}/read`, { method: 'POST' });
   },
 
-  async markAllAsRead(): Promise<ApiResponse<void>> {
-    return fetchApi<void>('/notifications/read-all', { method: 'POST' });
+  async markAllAsRead(userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>('/notifications', { 
+      method: 'PATCH',
+      body: JSON.stringify({ userId })
+    });
   },
 
   async getUnreadCount(): Promise<ApiResponse<{ count: number }>> {
