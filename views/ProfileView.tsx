@@ -633,7 +633,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
         <CommentModal 
           post={selectedPost} 
           currentUser={currentUser}
-          onClose={() => setSelectedPost(null)} 
+          onClose={() => setSelectedPost(null)}
+          onCommentAdded={(postId, newCommentsCount) => {
+            // Update the post in the posts array
+            setPosts(prev => prev.map(p => 
+              p.id === postId 
+                ? { ...p, commentsCount: newCommentsCount }
+                : p
+            ));
+            // Also update selectedPost if it's the same post
+            setSelectedPost(prev => prev && prev.id === postId
+              ? { ...prev, commentsCount: newCommentsCount }
+              : prev
+            );
+          }}
         />
       )}
     </div>

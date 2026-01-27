@@ -117,7 +117,7 @@ const App: React.FC = () => {
           />
         );
       case 'search':
-        return <SearchView />;
+        return <SearchView currentUser={currentUser} />;
       case 'explore':
         return <ExploreView currentUser={currentUser} />;
       case 'reels':

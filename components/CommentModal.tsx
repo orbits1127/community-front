@@ -9,9 +9,10 @@ interface CommentModalProps {
   post: PostType;
   currentUser?: AuthUser | null;
   onClose: () => void;
+  onCommentAdded?: (postId: string, newCommentsCount: number) => void;
 }
 
-const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose }) => {
+const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose, onCommentAdded }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
   const [commentText, setCommentText] = useState('');
@@ -33,9 +34,17 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
   const avatar = user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop';
   const username = user.username || 'unknown';
 
+  // Track if we've manually added a comment to prevent refetch
+  const [hasManualComment, setHasManualComment] = useState(false);
+
   // Fetch comments when modal opens
-  // Fetch exactly commentsCount comments to match the displayed count
+  // Only fetch when post.id changes, not when commentsCount changes (to prevent overwriting manually added comments)
   useEffect(() => {
+    // Skip refetch if we've manually added a comment
+    if (hasManualComment) {
+      return;
+    }
+
     const fetchComments = async () => {
       setLoadingComments(true);
       try {
@@ -71,7 +80,7 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
     };
 
     fetchComments();
-  }, [currentPost.id, currentPost.commentsCount]);
+  }, [currentPost.id]); // Removed currentPost.commentsCount from dependencies
 
   // Handle posting a comment
   const handlePostComment = async () => {
@@ -113,11 +122,20 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose 
         // Add new comment at the beginning (most recent first)
         setComments(prev => [newComment, ...prev]);
         
+        // Mark that we've manually added a comment to prevent refetch
+        setHasManualComment(true);
+        
         // Update comments count
+        const newCommentsCount = currentPost.commentsCount + 1;
         setCurrentPost(prev => ({
           ...prev,
-          commentsCount: prev.commentsCount + 1,
+          commentsCount: newCommentsCount,
         }));
+        
+        // Notify parent component about the comment addition
+        if (onCommentAdded) {
+          onCommentAdded(currentPost.id, newCommentsCount);
+        }
         
         // Clear input
         setCommentText('');
