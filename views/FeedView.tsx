@@ -128,6 +128,8 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
 
   // Handle post like with animation
   const handleLike = useCallback(async (postId: string, isLiked: boolean) => {
+    if (!currentUser?.id) return;
+    
     // Trigger animation
     if (!isLiked) {
       setLikeAnimations(prev => ({ ...prev, [postId]: true }));
@@ -147,9 +149,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
     
     try {
       if (isLiked) {
-        await postService.unlikePost(postId);
+        await postService.unlikePost(postId, currentUser.id);
       } else {
-        await postService.likePost(postId);
+        await postService.likePost(postId, currentUser.id);
       }
     } catch (err) {
       console.error('Error toggling like:', err);
@@ -162,7 +164,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments }) => {
         )
       );
     }
-  }, []);
+  }, [currentUser?.id]);
 
   // Handle double click to like
   const handleDoubleClickLike = useCallback(async (post: Post) => {

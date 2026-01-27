@@ -75,9 +75,9 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
     
     try {
       if (isLiked) {
-        await postService.unlikePost(postId);
+        await postService.unlikePost(postId, currentUser.id);
       } else {
-        await postService.likePost(postId);
+        await postService.likePost(postId, currentUser.id);
       }
     } catch (err) {
       console.error('Error toggling like:', err);

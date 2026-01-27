@@ -230,17 +230,17 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
                 <button 
                   className={`modal-action-btn ${currentPost.isLiked ? 'modal-action-btn--liked' : ''}`}
                   onClick={async () => {
-                    if (!currentUser) return;
+                    if (!currentUser?.id) return;
                     try {
                       if (currentPost.isLiked) {
-                        await postService.unlikePost(currentPost.id);
+                        await postService.unlikePost(currentPost.id, currentUser.id);
                         setCurrentPost(prev => ({
                           ...prev,
                           isLiked: false,
                           likes: prev.likes - 1,
                         }));
                       } else {
-                        await postService.likePost(currentPost.id);
+                        await postService.likePost(currentPost.id, currentUser.id);
                         setCurrentPost(prev => ({
                           ...prev,
                           isLiked: true,

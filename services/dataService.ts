@@ -168,12 +168,18 @@ export const postService = {
     return fetchApi<void>(`/posts/${postId}`, { method: 'DELETE' });
   },
 
-  async likePost(postId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/posts/${postId}/like`, { method: 'POST' });
+  async likePost(postId: string, userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/posts/${postId}/like`, { 
+      method: 'POST',
+      body: JSON.stringify({ userId })
+    });
   },
 
-  async unlikePost(postId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/posts/${postId}/unlike`, { method: 'POST' });
+  async unlikePost(postId: string, userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/posts/${postId}/like`, { 
+      method: 'DELETE',
+      body: JSON.stringify({ userId })
+    });
   },
 
   async savePost(postId: string, userId: string): Promise<ApiResponse<void>> {
