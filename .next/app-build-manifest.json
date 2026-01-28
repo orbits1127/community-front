@@ -31,45 +31,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/users/suggestions/route.js"
     ],
-    "/api/users/[id]/route": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/users/[id]/route.js"
-    ],
-    "/api/users/[id]/posts/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/users/[id]/posts/route.js"
-    ],
-    "/api/users/[id]/highlights/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/users/[id]/highlights/route.js"
-    ],
-    "/api/posts/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/posts/route.js"
-    ],
-    "/api/posts/[id]/like/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/posts/[id]/like/route.js"
-    ],
-    "/api/notifications/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/notifications/route.js"
-    ],
-    "/api/posts/[id]/save/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/posts/[id]/save/route.js"
-    ],
-    "/api/posts/saved/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/posts/saved/route.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }
