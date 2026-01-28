@@ -73,12 +73,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       if (response.success && response.data) {
         onLogin(response.data);
       } else {
-        // For demo purposes, allow login without backend
-        onLogin();
+        const msg = response.error || '로그인이 실패했습니다.';
+        setError(msg);
+        alert(`로그인이 실패했습니다.\n${msg}`);
       }
     } catch (err) {
-      // For demo purposes, allow login without backend
-      onLogin();
+      const msg = err instanceof Error ? err.message : '로그인에 실패했습니다.';
+      setError(msg);
+      alert(`로그인이 실패했습니다.\n${msg}`);
     } finally {
       setIsLoading(false);
     }

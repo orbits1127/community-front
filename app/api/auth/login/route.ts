@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
 
     if (!loginId || !password) {
       return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
+        { success: false, error: '아이디와 비밀번호를 입력해 주세요.' },
         { status: 401 }
       );
     }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
+        { success: false, error: '해당 아이디(또는 이메일)가 데이터베이스에 없습니다.' },
         { status: 401 }
       );
     }
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     if (!isValidPassword) {
       return NextResponse.json(
-        { success: false, error: 'Invalid credentials' },
+        { success: false, error: '비밀번호가 일치하지 않습니다.' },
         { status: 401 }
       );
     }
