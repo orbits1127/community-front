@@ -41,10 +41,45 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/messages/[conversationId]/route.js"
     ],
-    "/_not-found/page": [
+    "/api/notifications/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/api/notifications/route.js"
+    ],
+    "/api/users/[id]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/users/[id]/route.js"
+    ],
+    "/api/users/[id]/posts/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/users/[id]/posts/route.js"
+    ],
+    "/api/users/[id]/highlights/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/users/[id]/highlights/route.js"
+    ],
+    "/api/posts/saved/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/posts/saved/route.js"
+    ],
+    "/api/users/[id]/highlights/[highlightId]/stories/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/users/[id]/highlights/[highlightId]/stories/route.js"
+    ],
+    "/api/posts/[id]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/posts/[id]/route.js"
+    ],
+    "/api/posts/[id]/comments/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/posts/[id]/comments/route.js"
     ]
   }
 }

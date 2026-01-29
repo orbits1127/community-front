@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Grid, Film, Bookmark, UserSquare2, Settings, Plus, Heart, MessageCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { UserProfile, Post, Highlight, Story, AuthUser } from '../types';
-import { userService, postService, highlightService } from '../services/dataService';
+import { userService, postService, highlightService, storyService } from '../services/dataService';
 import CommentModal from '../components/CommentModal';
 
 interface ProfileViewProps {
@@ -31,6 +31,15 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   // Post modal state
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [loadingPost, setLoadingPost] = useState(false);
+
+  // Create highlight modal state
+  const [showCreateHighlightModal, setShowCreateHighlightModal] = useState(false);
+  const [createHighlightName, setCreateHighlightName] = useState('');
+  const [selectedStoryIds, setSelectedStoryIds] = useState<string[]>([]);
+  const [myStories, setMyStories] = useState<Story[]>([]);
+  const [loadingMyStories, setLoadingMyStories] = useState(false);
+  const [creatingHighlight, setCreatingHighlight] = useState(false);
+  const [createHighlightError, setCreateHighlightError] = useState<string | null>(null);
 
   // Fetch profile data
   useEffect(() => {
@@ -124,6 +133,76 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
       console.error('Error toggling follow:', err);
     }
   };
+
+  // Open create highlight modal and fetch current user's stories
+  const handleOpenCreateHighlight = useCallback(async () => {
+    if (!userId) return;
+    setShowCreateHighlightModal(true);
+    setCreateHighlightName('');
+    setSelectedStoryIds([]);
+    setCreateHighlightError(null);
+    setLoadingMyStories(true);
+    try {
+      const res = await storyService.getStories(userId);
+      if (res.success && res.data) {
+        const mine = res.data.filter(s => s.userId === userId);
+        setMyStories(mine);
+      } else {
+        setMyStories([]);
+      }
+    } catch (err) {
+      console.error('Error loading stories:', err);
+      setMyStories([]);
+    } finally {
+      setLoadingMyStories(false);
+    }
+  }, [userId]);
+
+  const toggleStoryForHighlight = (storyId: string) => {
+    setSelectedStoryIds(prev =>
+      prev.includes(storyId) ? prev.filter(id => id !== storyId) : [...prev, storyId]
+    );
+  };
+
+  const handleCreateHighlight = useCallback(async () => {
+    if (!userId || !createHighlightName.trim()) {
+      setCreateHighlightError('하이라이트 이름을 입력해 주세요.');
+      return;
+    }
+    if (selectedStoryIds.length === 0) {
+      setCreateHighlightError('스토리를 하나 이상 선택해 주세요.');
+      return;
+    }
+    setCreatingHighlight(true);
+    setCreateHighlightError(null);
+    try {
+      const res = await highlightService.createHighlight(userId, {
+        name: createHighlightName.trim(),
+        storyIds: selectedStoryIds,
+      });
+      if (res.success && res.data) {
+        const created = res.data as Highlight & { stories?: { story?: { imageUrl?: string } }[] };
+        setHighlights(prev => [{
+          id: created.id,
+          userId: created.userId,
+          name: created.name,
+          coverImage: created.coverImage ?? created.stories?.[0]?.story?.imageUrl ?? null,
+          storiesCount: Array.isArray(created.stories) ? created.stories.length : 0,
+          createdAt: created.createdAt ?? new Date().toISOString(),
+        }, ...prev]);
+        setShowCreateHighlightModal(false);
+        setCreateHighlightName('');
+        setSelectedStoryIds([]);
+      } else {
+        setCreateHighlightError(res.error || '하이라이트를 만들 수 없습니다.');
+      }
+    } catch (err) {
+      console.error('Error creating highlight:', err);
+      setCreateHighlightError('하이라이트를 만들 수 없습니다.');
+    } finally {
+      setCreatingHighlight(false);
+    }
+  }, [userId, createHighlightName, selectedStoryIds]);
 
   // Handle highlight click - fetch and show stories
   const handleHighlightClick = useCallback(async (highlight: Highlight) => {
@@ -310,12 +389,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
         {/* Highlights Section */}
         <div className="profile-highlights">
           {isOwnProfile && (
-            <div className="profile-highlight profile-highlight--new">
+            <button
+              type="button"
+              className="profile-highlight profile-highlight--new"
+              onClick={handleOpenCreateHighlight}
+              aria-label="새 하이라이트 만들기"
+            >
               <div className="profile-highlight-circle profile-highlight-circle--new">
                 <Plus size={24} />
               </div>
               <span className="profile-highlight-name">New</span>
-            </div>
+            </button>
           )}
           {highlights.length > 0
             ? highlights.map(highlight => (
@@ -528,6 +612,165 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
           )}
         </div>
       </div>
+
+      {/* Create Highlight Modal */}
+      {showCreateHighlightModal && (
+        <div
+          className="story-modal-overlay"
+          onClick={() => !creatingHighlight && setShowCreateHighlightModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            zIndex: 9998,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            className="create-highlight-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'var(--ig-primary-background)',
+              borderRadius: '12px',
+              maxWidth: '400px',
+              width: '90%',
+              maxHeight: '85vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            }}
+          >
+            <div style={{
+              padding: '16px 16px 12px',
+              borderBottom: '1px solid var(--ig-separator)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <button
+                type="button"
+                onClick={() => !creatingHighlight && setShowCreateHighlightModal(false)}
+                style={{ padding: '4px', color: 'var(--ig-primary-text)' }}
+                aria-label="닫기"
+              >
+                <X size={24} />
+              </button>
+              <span style={{ fontWeight: 600, fontSize: '16px' }}>새 하이라이트</span>
+              <button
+                type="button"
+                disabled={creatingHighlight || !createHighlightName.trim() || selectedStoryIds.length === 0}
+                onClick={handleCreateHighlight}
+                style={{
+                  padding: '4px 8px',
+                  color: creatingHighlight || !createHighlightName.trim() || selectedStoryIds.length === 0
+                    ? 'var(--ig-secondary-text)'
+                    : 'var(--ig-link)',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: creatingHighlight ? 'wait' : 'pointer',
+                }}
+              >
+                {creatingHighlight ? '만드는 중…' : '만들기'}
+              </button>
+            </div>
+            <div style={{ padding: '16px', overflow: 'auto', flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ig-secondary-text)' }}>
+                이름
+              </label>
+              <input
+                type="text"
+                value={createHighlightName}
+                onChange={(e) => setCreateHighlightName(e.target.value)}
+                placeholder="하이라이트 이름"
+                maxLength={50}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid var(--ig-separator)',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  marginBottom: '16px',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: 'var(--ig-secondary-text)' }}>
+                스토리 선택
+              </label>
+              {loadingMyStories ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--ig-secondary-text)' }}>
+                  스토리 불러오는 중…
+                </div>
+              ) : myStories.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--ig-secondary-text)', fontSize: '14px' }}>
+                  올린 스토리가 없습니다. 스토리를 먼저 올린 뒤 하이라이트에 추가할 수 있습니다.
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '8px',
+                }}>
+                  {myStories.map((story) => (
+                    <button
+                      key={story.id}
+                      type="button"
+                      onClick={() => toggleStoryForHighlight(story.id)}
+                      style={{
+                        position: 'relative',
+                        aspectRatio: '1',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        padding: 0,
+                        border: selectedStoryIds.includes(story.id) ? '3px solid var(--ig-link)' : '2px solid var(--ig-separator)',
+                        cursor: 'pointer',
+                        background: '#000',
+                      }}
+                    >
+                      {story.imageUrl ? (
+                        <img
+                          src={story.imageUrl}
+                          alt=""
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', background: 'var(--ig-secondary-background)' }} />
+                      )}
+                      {selectedStoryIds.includes(story.id) && (
+                        <span style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: 'var(--ig-link)',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                        }}>✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {createHighlightError && (
+                <p style={{ marginTop: '12px', fontSize: '13px', color: 'var(--ig-error)' }}>
+                  {createHighlightError}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Story Modal */}
       {selectedStory && (

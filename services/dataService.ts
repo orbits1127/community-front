@@ -286,8 +286,11 @@ export const highlightService = {
     return fetchApi<Story[]>(`/users/${userId}/highlights/${highlightId}/stories`);
   },
 
-  async createHighlight(data: { name: string; storyIds: string[] }): Promise<ApiResponse<Highlight>> {
-    return fetchApi<Highlight>('/highlights', {
+  async createHighlight(
+    userId: string,
+    data: { name: string; storyIds: string[]; coverImage?: string | null }
+  ): Promise<ApiResponse<Highlight>> {
+    return fetchApi<Highlight>(`/users/${userId}/highlights`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
