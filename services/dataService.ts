@@ -258,10 +258,10 @@ export const storyService = {
     return fetchApi<Story[]>(`/users/${userId}/stories`);
   },
 
-  async createStory(imageUrl: string): Promise<ApiResponse<Story>> {
+  async createStory(userId: string, imageUrl: string): Promise<ApiResponse<Story>> {
     return fetchApi<Story>('/stories', {
       method: 'POST',
-      body: JSON.stringify({ imageUrl }),
+      body: JSON.stringify({ userId, imageUrl }),
     });
   },
 

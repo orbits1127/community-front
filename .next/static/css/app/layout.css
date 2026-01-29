@@ -452,6 +452,39 @@ button {
 .story-item__img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
 .story-item__username { font-size: 12px; max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ig-secondary-text); }
 
+button.story-item.story-item--add {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button.story-item.story-item--add:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.story-item__ring--add .story-item__inner {
+  position: relative;
+}
+
+.story-item__add-icon {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ig-link);
+  color: #fff;
+  border: 2px solid var(--ig-primary-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* -------------------------------------------------------------------------- */
 /* 7. COMMENT MODAL                                                           */
 /* -------------------------------------------------------------------------- */
@@ -1600,6 +1633,19 @@ button {
   gap: 8px;
   flex-shrink: 0;
   cursor: pointer;
+}
+
+button.profile-highlight {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+
+button.profile-highlight:hover .profile-highlight-circle--new {
+  background: var(--ig-secondary-background);
+  color: var(--ig-primary-text);
 }
 
 .profile-highlight-circle {

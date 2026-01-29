@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Post, Story, Suggestion, AuthUser, User } from '../types';
 import { postService, storyService, userService, messageService } from '../services/dataService';
 
@@ -34,6 +34,64 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
   const [storyProgress, setStoryProgress] = useState(0);
+
+  // Create story state
+  const [creatingStory, setCreatingStory] = useState(false);
+  const storyFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddStoryClick = useCallback(() => {
+    if (!currentUser?.id || creatingStory) return;
+    storyFileInputRef.current?.click();
+  }, [currentUser?.id, creatingStory]);
+
+  const handleStoryFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !currentUser?.id) return;
+      if (!file.type.startsWith('image/')) {
+        alert('이미지 파일을 선택해 주세요.');
+        e.target.value = '';
+        return;
+      }
+      setCreatingStory(true);
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const imageUrl = event.target?.result as string;
+        if (!imageUrl) {
+          setCreatingStory(false);
+          e.target.value = '';
+          return;
+        }
+        try {
+          const res = await storyService.createStory(currentUser.id, imageUrl);
+          if (res.success && res.data) {
+            const d = res.data as { id: string; userId: string; user?: { id: string; username: string; fullName?: string; avatar?: string | null }; imageUrl: string | null; createdAt: string; expiresAt: string };
+            const u = d.user ?? { id: currentUser.id, username: currentUser.username, fullName: currentUser.fullName ?? currentUser.username, avatar: currentUser.avatar };
+            const newStory: Story = {
+              id: d.id,
+              userId: d.userId,
+              user: { id: u.id, username: u.username, fullName: u.fullName ?? u.username, avatar: u.avatar ?? null },
+              imageUrl: d.imageUrl,
+              hasUnseenContent: true,
+              createdAt: d.createdAt,
+              expiresAt: d.expiresAt,
+            };
+            setStories(prev => [newStory, ...prev]);
+          } else {
+            alert(res.error || '스토리를 올릴 수 없습니다.');
+          }
+        } catch (err) {
+          console.error('Error creating story:', err);
+          alert('스토리를 올릴 수 없습니다.');
+        } finally {
+          setCreatingStory(false);
+          e.target.value = '';
+        }
+      };
+      reader.readAsDataURL(file);
+    },
+    [currentUser]
+  );
 
   // Story navigation handlers
   const handleStoryClick = useCallback((story: Story, index: number) => {
@@ -301,40 +359,66 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
       <div className="feed-main">
         {/* Stories */}
         <div className="story-tray">
-          {stories.length > 0
-            ? stories.map((story, index) => (
-                <div 
-                  key={story.id} 
-                  className="story-item"
-                  onClick={() => handleStoryClick(story, index)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="story-item__ring">
-                    <div className="story-item__inner">
-                      {story.user.avatar ? (
-                        <img
-                          src={story.user.avatar}
-                          alt={story.user.username}
-                          className="story-item__img"
-                        />
-                      ) : (
-                        <div className="story-item__placeholder"></div>
-                      )}
-                    </div>
-                  </div>
-                  <span className="story-item__username">{story.user.username}</span>
+          <input
+            ref={storyFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleStoryFileChange}
+            style={{ display: 'none' }}
+            aria-hidden
+          />
+          {currentUser && (
+            <button
+              type="button"
+              className="story-item story-item--add"
+              onClick={handleAddStoryClick}
+              disabled={creatingStory}
+              aria-label="스토리 추가"
+            >
+              <div className="story-item__ring story-item__ring--add">
+                <div className="story-item__inner">
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt=""
+                      className="story-item__img"
+                    />
+                  ) : (
+                    <div className="story-item__placeholder"></div>
+                  )}
+                  <span className="story-item__add-icon">
+                    <Plus size={20} strokeWidth={2.5} />
+                  </span>
                 </div>
-              ))
-            : renderPlaceholder(8).map((_, index) => (
-                <div key={index} className="story-item">
-                  <div className="story-item__ring">
-                    <div className="story-item__inner">
-                      <div className="story-item__placeholder"></div>
-                    </div>
-                  </div>
-                  <span className="story-item__username">username</span>
+              </div>
+              <span className="story-item__username">
+                {creatingStory ? '올리는 중…' : '스토리'}
+              </span>
+            </button>
+          )}
+          {stories.map((story, index) => (
+            <div
+              key={story.id}
+              className="story-item"
+              onClick={() => handleStoryClick(story, index)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="story-item__ring">
+                <div className="story-item__inner">
+                  {story.user.avatar ? (
+                    <img
+                      src={story.user.avatar}
+                      alt={story.user.username}
+                      className="story-item__img"
+                    />
+                  ) : (
+                    <div className="story-item__placeholder"></div>
+                  )}
                 </div>
-              ))}
+              </div>
+              <span className="story-item__username">{story.user.username}</span>
+            </div>
+          ))}
         </div>
 
         {/* Posts */}
