@@ -27,6 +27,7 @@ async function fetchApi<T>(
 ): Promise<ApiResponse<T>> {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,

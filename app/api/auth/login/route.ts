@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+
+const SESSION_MAX_AGE_DAYS = 7;
+const SESSION_COOKIE_NAME = 'session_token';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,13 +44,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + SESSION_MAX_AGE_DAYS);
+
+    await prisma.session.create({
+      data: {
+        token,
+        userId: user.id,
+        expiresAt,
+      },
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: userWithoutPassword,
     });
+
+    response.cookies.set(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+      maxAge: SESSION_MAX_AGE_DAYS * 24 * 60 * 60,
+      secure: process.env.NODE_ENV === 'production',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

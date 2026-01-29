@@ -48,7 +48,28 @@ model User {
   notificationsSent     Notification[] @relation("actor")
   notificationsReceived Notification[] @relation("recipient")
 
+  // Auth sessions (cookie-based)
+  sessions Session[]
+
   @@map("users")
+}
+
+// ============================================================================
+// Session Model (cookie-based auth)
+// ============================================================================
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 // ============================================================================
