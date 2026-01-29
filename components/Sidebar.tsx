@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Home, 
-  Search, 
-  Compass, 
-  Film, 
-  MessageCircle, 
-  Heart, 
-  PlusSquare, 
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  Home,
+  Search,
+  Compass,
+  Film,
+  MessageCircle,
+  Heart,
+  PlusSquare,
   Menu,
   Instagram,
   User,
@@ -19,112 +21,121 @@ import {
   Moon,
   AlertCircle,
   RefreshCw,
-  LogOut
+  LogOut,
 } from 'lucide-react';
+import { useApp } from '../contexts/AppContext';
 
-interface SidebarProps {
-  currentTab: string;
-  onTabChange: (tab: string) => void;
-}
+const navItems = [
+  { id: 'home', label: 'Home', icon: Home, href: '/feed' },
+  { id: 'search', label: 'Search', icon: Search, href: '/search' },
+  { id: 'explore', label: 'Explore', icon: Compass, href: '/explore' },
+  { id: 'reels', label: 'Reels', icon: Film, href: '/reels' },
+  { id: 'messages', label: 'Messages', icon: MessageCircle, href: '/messages' },
+  { id: 'notif', label: 'Notifications', icon: Heart, href: '/notifications' },
+  { id: 'create', label: 'Create', icon: PlusSquare, href: null },
+  { id: 'profile', label: 'Profile', icon: User, href: '/profile' },
+];
 
-const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange }) => {
+export default function Sidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { openCreateModal, logout } = useApp();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  const navItems = [
-    { id: 'home', label: 'Home', icon: <Home size={24} /> },
-    { id: 'search', label: 'Search', icon: <Search size={24} /> },
-    { id: 'explore', label: 'Explore', icon: <Compass size={24} /> },
-    { id: 'reels', label: 'Reels', icon: <Film size={24} /> },
-    { id: 'messages', label: 'Messages', icon: <MessageCircle size={24} /> },
-    { id: 'notif', label: 'Notifications', icon: <Heart size={24} /> },
-    { id: 'create', label: 'Create', icon: <PlusSquare size={24} /> },
-    { id: 'profile', label: 'Profile', icon: <User size={24} /> },
-  ];
+  const isActive = (item: (typeof navItems)[0]) => {
+    if (item.id === 'home') return pathname === '/feed' || pathname === '/';
+    if (item.id === 'profile') return pathname.startsWith('/profile');
+    return pathname === item.href;
+  };
 
   const moreMenuItems = [
-    { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
-    { id: 'activity', label: 'Your activity', icon: <Activity size={18} /> },
-    { id: 'saved', label: 'Saved', icon: <Bookmark size={18} /> },
-    { id: 'appearance', label: 'Switch appearance', icon: isDarkMode ? <Moon size={18} /> : <Sun size={18} />, hasToggle: true },
-    { id: 'report', label: 'Report a problem', icon: <AlertCircle size={18} /> },
-    { id: 'separator1', type: 'separator' },
-    { id: 'switch', label: 'Switch accounts', icon: <RefreshCw size={18} /> },
-    { id: 'separator2', type: 'separator' },
-    { id: 'logout', label: 'Log out', icon: <LogOut size={18} /> },
+    { id: 'settings', label: 'Settings', icon: <Settings size={18} />, href: '/settings' },
+    { id: 'activity', label: 'Your activity', icon: <Activity size={18} />, href: null },
+    { id: 'saved', label: 'Saved', icon: <Bookmark size={18} />, href: '/profile' },
+    { id: 'appearance', label: 'Switch appearance', icon: isDarkMode ? <Moon size={18} /> : <Sun size={18} />, hasToggle: true, href: null },
+    { id: 'report', label: 'Report a problem', icon: <AlertCircle size={18} />, href: null },
+    { id: 'separator1', type: 'separator' as const, icon: null, href: null },
+    { id: 'switch', label: 'Switch accounts', icon: <RefreshCw size={18} />, href: null },
+    { id: 'separator2', type: 'separator' as const, icon: null, href: null },
+    { id: 'logout', label: 'Log out', icon: <LogOut size={18} />, href: null },
   ];
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
         setShowMoreMenu(false);
       }
     };
-
-    if (showMoreMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    if (showMoreMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMoreMenu]);
 
-  const handleMoreMenuClick = (itemId: string) => {
+  const handleMoreMenuClick = (itemId: string, href: string | null) => {
     if (itemId === 'appearance') {
       setIsDarkMode(!isDarkMode);
-      return;
-    }
-    if (itemId === 'settings') {
-      onTabChange('settings');
-      setShowMoreMenu(false);
-      return;
-    }
-    if (itemId === 'saved') {
-      onTabChange('profile');
       setShowMoreMenu(false);
       return;
     }
     if (itemId === 'logout') {
-      // Handle logout - reload the page to go back to login
-      window.location.reload();
+      logout();
+      setShowMoreMenu(false);
       return;
+    }
+    if (href) {
+      router.push(href);
     }
     setShowMoreMenu(false);
   };
 
   return (
     <nav className="sidebar">
-      {/* Logo Section */}
-      <div className="sidebar__logo-area" onClick={() => onTabChange('home')}>
-        <Instagram className="sidebar__logo-icon" size={24} />
-        <span className="sidebar__logo-text">Instagram</span>
+      <div className="sidebar__logo-area">
+        <Link href="/feed" className="sidebar__logo-link">
+          <Instagram className="sidebar__logo-icon" size={24} />
+          <span className="sidebar__logo-text">Instagram</span>
+        </Link>
       </div>
 
-      {/* Navigation Items */}
       <div className="sidebar__nav">
-        {navItems.map((item) => (
-          <div 
-            key={item.id}
-            className={`sidebar__item ${currentTab === item.id ? 'sidebar__item--active' : ''}`}
-            onClick={() => onTabChange(item.id)}
-          >
-            <div className="sidebar__icon-wrapper">
-              {React.cloneElement(item.icon as React.ReactElement, {
-                strokeWidth: currentTab === item.id ? 2.5 : 2,
-                fill: currentTab === item.id && !['search', 'create', 'notif'].includes(item.id) ? 'currentColor' : 'none'
-              })}
-            </div>
-            <span className="sidebar__label">{item.label}</span>
-          </div>
-        ))}
+        {navItems.map((item) => {
+          const active = isActive(item);
+          const Icon = item.icon;
+          if (item.id === 'create') {
+            return (
+              <div
+                key={item.id}
+                className="sidebar__item"
+                onClick={openCreateModal}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && openCreateModal()}
+              >
+                <div className="sidebar__icon-wrapper">
+                  <Icon size={24} strokeWidth={2} fill="none" />
+                </div>
+                <span className="sidebar__label">{item.label}</span>
+              </div>
+            );
+          }
+          return (
+            <Link key={item.id} href={item.href!} className={`sidebar__item ${active ? 'sidebar__item--active' : ''}`}>
+              <div className="sidebar__icon-wrapper">
+                <Icon
+                  size={24}
+                  strokeWidth={active ? 2.5 : 2}
+                  fill={active && !['search', 'notif'].includes(item.id) ? 'currentColor' : 'none'}
+                />
+              </div>
+              <span className="sidebar__label">{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
 
-      {/* Bottom More Menu */}
       <div className="sidebar__more" ref={moreMenuRef}>
-        <div 
+        <div
           className={`sidebar__item ${showMoreMenu ? 'sidebar__item--active' : ''}`}
           onClick={() => setShowMoreMenu(!showMoreMenu)}
         >
@@ -134,7 +145,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange }) => {
           <span className="sidebar__label">More</span>
         </div>
 
-        {/* More Menu Popup */}
         {showMoreMenu && (
           <div className="more-menu">
             {moreMenuItems.map((item) => {
@@ -142,14 +152,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange }) => {
                 return <div key={item.id} className="more-menu__separator" />;
               }
               return (
-                <div 
+                <div
                   key={item.id}
                   className="more-menu__item"
-                  onClick={() => handleMoreMenuClick(item.id)}
+                  onClick={() => handleMoreMenuClick(item.id, item.href)}
                 >
                   <div className="more-menu__icon">{item.icon}</div>
                   <span className="more-menu__label">{item.label}</span>
-                  {item.hasToggle && (
+                  {'hasToggle' in item && item.hasToggle && (
                     <div className={`more-menu__toggle ${isDarkMode ? 'more-menu__toggle--active' : ''}`}>
                       <div className="more-menu__toggle-circle" />
                     </div>
@@ -162,6 +172,4 @@ const Sidebar: React.FC<SidebarProps> = ({ currentTab, onTabChange }) => {
       </div>
     </nav>
   );
-};
-
-export default Sidebar;
+}
