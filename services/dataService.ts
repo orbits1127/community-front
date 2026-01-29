@@ -128,7 +128,7 @@ export const userService = {
   },
 
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
-    return fetchApi<User[]>(`/users/search?q=${encodeURIComponent(query)}`);
+    return fetchApi<User[]>(`/search?q=${encodeURIComponent(query)}`);
   },
 };
 
@@ -140,6 +140,12 @@ export const postService = {
     const params = new URLSearchParams({ page: String(page) });
     if (userId) params.set('userId', userId);
     return fetchApi<PaginatedResponse<Post>>(`/posts/feed?${params.toString()}`);
+  },
+
+  async searchPosts(query: string, limit = 20, userId?: string): Promise<ApiResponse<PaginatedResponse<Post>>> {
+    const params = new URLSearchParams({ q: query.trim(), limit: String(limit) });
+    if (userId) params.set('userId', userId);
+    return fetchApi<PaginatedResponse<Post>>(`/posts/search?${params.toString()}`);
   },
 
   async getPost(postId: string): Promise<ApiResponse<Post>> {

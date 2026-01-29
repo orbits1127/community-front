@@ -126,7 +126,7 @@ const App: React.FC = () => {
           />
         );
       case 'search':
-        return <SearchView currentUser={currentUser} />;
+        return <SearchView currentUser={currentUser} onOpenComments={setSelectedPost} />;
       case 'explore':
         return <ExploreView currentUser={currentUser} />;
       case 'reels':

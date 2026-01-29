@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Search } from 'lucide-react';
-import { User } from '../types';
-import { userService } from '../services/dataService';
+import { User, Post } from '../types';
+import { userService, postService } from '../services/dataService';
 import { AuthUser } from '../types';
+import PostComponent from '../components/Post';
 
 interface SearchViewProps {
   currentUser?: AuthUser | null;
+  onOpenComments?: (post: Post) => void;
 }
 
 interface SearchHistoryItem {
@@ -28,12 +30,13 @@ const SearchItemPlaceholder: React.FC = () => (
   </div>
 );
 
-const SearchView: React.FC<SearchViewProps> = ({ currentUser }) => {
+const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) => {
   const [query, setQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [searchPosts, setSearchPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [loadingPosts, setLoadingPosts] = useState(false);
 
   // Load search history from localStorage on mount
   useEffect(() => {
@@ -109,40 +112,42 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser }) => {
 
   // Handle search with debounce
   useEffect(() => {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-
     if (!query.trim()) {
       setSearchResults([]);
+      setSearchPosts([]);
       return;
     }
 
     const timer = setTimeout(async () => {
       setLoading(true);
+      setLoadingPosts(true);
       try {
-        const response = await userService.searchUsers(query.trim());
-        if (response.success && response.data) {
-          setSearchResults(response.data);
+        const [usersRes, postsRes] = await Promise.all([
+          userService.searchUsers(query.trim()),
+          postService.searchPosts(query.trim(), 20, currentUser?.id),
+        ]);
+        if (usersRes.success && usersRes.data) {
+          setSearchResults(usersRes.data);
         } else {
           setSearchResults([]);
         }
+        if (postsRes.success && postsRes.data?.items) {
+          setSearchPosts(postsRes.data.items);
+        } else {
+          setSearchPosts([]);
+        }
       } catch (err) {
-        console.error('Error searching users:', err);
+        console.error('Error searching:', err);
         setSearchResults([]);
+        setSearchPosts([]);
       } finally {
         setLoading(false);
+        setLoadingPosts(false);
       }
     }, 300);
 
-    setDebounceTimer(timer);
-
-    return () => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-    };
-  }, [query]);
+    return () => clearTimeout(timer);
+  }, [query, currentUser?.id]);
 
   // Handle user click from search results
   const handleUserClick = useCallback((user: User) => {
@@ -300,9 +305,9 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser }) => {
           </>
         ) : (
           <>
-            {/* 검색 결과 리스트 (입력 후) */}
+            {/* 검색 결과: 사용자 */}
             <div className="search-page__section-header">
-              <span className="search-page__title">결과</span>
+              <span className="search-page__title">계정</span>
             </div>
             <div className="search-page__list">
               {loading ? (
@@ -353,15 +358,47 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser }) => {
                   </div>
                 ))
               ) : (
-                <div style={{ 
-                  padding: '40px 20px', 
-                  textAlign: 'center', 
-                  color: 'var(--ig-secondary-text)' 
-                }}>
-                  검색 결과가 없습니다
-                </div>
+                !loadingPosts && searchPosts.length === 0 ? (
+                  <div style={{ 
+                    padding: '40px 20px', 
+                    textAlign: 'center', 
+                    color: 'var(--ig-secondary-text)' 
+                  }}>
+                    검색 결과가 없습니다
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 20px', color: 'var(--ig-secondary-text)', fontSize: '14px' }}>
+                    일치하는 계정이 없습니다
+                  </div>
+                )
               )}
             </div>
+
+            {/* 관련 피드 */}
+            {(searchPosts.length > 0 || loadingPosts) && (
+              <>
+                <div className="search-page__section-header" style={{ marginTop: '24px' }}>
+                  <span className="search-page__title">관련 피드</span>
+                </div>
+                <div className="search-page__feed" style={{ maxWidth: '470px', margin: '0 auto' }}>
+                  {loadingPosts ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <div key={`post-skeleton-${i}`} className="post" style={{ opacity: 0.6 }}>
+                        <div style={{ height: '400px', background: 'var(--ig-elevated-separator)', borderRadius: '4px' }} />
+                      </div>
+                    ))
+                  ) : (
+                    searchPosts.map((post) => (
+                      <PostComponent
+                        key={post.id}
+                        post={post}
+                        onOpenComments={onOpenComments}
+                      />
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </main>

@@ -1,8 +1,10 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/login/route": "app/api/auth/login/route.js",
   "/api/posts/feed/route": "app/api/posts/feed/route.js",
   "/api/stories/route": "app/api/stories/route.js",
   "/api/users/suggestions/route": "app/api/users/suggestions/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
+  "/api/messages/route": "app/api/messages/route.js",
+  "/api/messages/[conversationId]/route": "app/api/messages/[conversationId]/route.js",
   "/page": "app/page.js"
 }
