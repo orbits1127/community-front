@@ -5,6 +5,10 @@ import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ChevronLeft, C
 import { Post, Story, Suggestion, AuthUser, User } from '../types';
 import { postService, storyService, userService, messageService } from '../services/dataService';
 
+// =============================================================================
+// 타입 정의
+// =============================================================================
+
 interface FeedViewProps {
   currentUser?: AuthUser | null;
   onOpenComments: (post: Post) => void;
@@ -12,33 +16,47 @@ interface FeedViewProps {
 }
 
 const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refreshKey }) => {
+  // =============================================================================
+  // 상태: 피드 데이터 (포스트, 스토리, 추천, 로딩/에러)
+  // =============================================================================
   const [posts, setPosts] = useState<Post[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Share modal state
+
+  // =============================================================================
+  // 상태: 공유 모달
+  // =============================================================================
   const [shareModalPost, setShareModalPost] = useState<Post | null>(null);
   const [shareSearch, setShareSearch] = useState('');
   const [shareUsers, setShareUsers] = useState<User[]>([]);
   const [selectedShareUsers, setSelectedShareUsers] = useState<string[]>([]);
   const [shareSending, setShareSending] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  
-  // Animation states
+
+  // =============================================================================
+  // 상태: 애니메이션 (좋아요 하트, 저장 북마크)
+  // =============================================================================
   const [likeAnimations, setLikeAnimations] = useState<Record<string, boolean>>({});
   const [saveAnimations, setSaveAnimations] = useState<Record<string, boolean>>({});
-  
-  // Story modal state
+
+  // =============================================================================
+  // 상태: 스토리 모달 (선택된 스토리, 인덱스, 진행률)
+  // =============================================================================
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
   const [storyProgress, setStoryProgress] = useState(0);
 
-  // Create story state
+  // =============================================================================
+  // 상태: 스토리 생성 (업로드 중, 파일 input ref)
+  // =============================================================================
   const [creatingStory, setCreatingStory] = useState(false);
   const storyFileInputRef = useRef<HTMLInputElement>(null);
 
+  // =============================================================================
+  // 스토리: 추가 클릭 / 파일 선택 후 업로드
+  // =============================================================================
   const handleAddStoryClick = useCallback(() => {
     if (!currentUser?.id || creatingStory) return;
     storyFileInputRef.current?.click();
@@ -93,7 +111,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     [currentUser]
   );
 
-  // Story navigation handlers
+  // =============================================================================
+  // 스토리: 클릭 / 이전·다음 이동 / 키보드(좌우, ESC)
+  // =============================================================================
   const handleStoryClick = useCallback((story: Story, index: number) => {
     setSelectedStory(story);
     setStoryIndex(index);
@@ -118,7 +138,6 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     }
   }, [storyIndex, stories]);
 
-  // Keyboard navigation for stories
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!selectedStory) return;
@@ -136,7 +155,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedStory, handlePrevStory, handleNextStory]);
 
-  // Fetch feed data (팔로우한 사람 + 본인 포스트만 노출)
+  // =============================================================================
+  // 피드 데이터 로드 (포스트, 스토리, 추천 — 팔로우+본인만)
+  // =============================================================================
   useEffect(() => {
     const fetchFeedData = async () => {
       setLoading(true);
@@ -185,7 +206,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     fetchFeedData();
   }, [currentUser?.id, refreshKey]);
 
-  // Handle post like with animation
+  // =============================================================================
+  // 좋아요: 토글 + 애니메이션 + 낙관적 업데이트
+  // =============================================================================
   const handleLike = useCallback(async (postId: string, isLiked: boolean) => {
     if (!currentUser?.id) return;
     
@@ -225,7 +248,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     }
   }, [currentUser?.id]);
 
-  // Handle double click to like
+  // 좋아요: 더블클릭으로 좋아요
   const handleDoubleClickLike = useCallback(async (post: Post) => {
     if (!post.isLiked) {
       await handleLike(post.id, false);
@@ -238,7 +261,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     }
   }, [handleLike]);
 
-  // Handle post save with animation
+  // =============================================================================
+  // 저장: 토글 + 애니메이션 + 낙관적 업데이트
+  // =============================================================================
   const handleSave = useCallback(async (postId: string, isSaved: boolean) => {
     if (!currentUser?.id) return;
 
@@ -274,7 +299,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     }
   }, [currentUser?.id]);
 
-  // Handle share button click
+  // =============================================================================
+  // 공유: 모달 열기 / 유저 검색 / 선택 토글 / 전송
+  // =============================================================================
   const handleShareClick = useCallback((post: Post) => {
     setShareModalPost(post);
     setShareSearch('');
@@ -336,7 +363,9 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     }
   }, [shareModalPost, selectedShareUsers]);
 
-  // Handle follow suggestion
+  // =============================================================================
+  // 추천: 팔로우 버튼 (팔로우 후 추천 목록에서 제거)
+  // =============================================================================
   const handleFollow = useCallback(async (userId: string) => {
     if (!currentUser?.id) return;
     
@@ -349,15 +378,17 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     }
   }, [currentUser?.id]);
 
-  // Render placeholder when no data
+  // =============================================================================
+  // UI 헬퍼: 데이터 없을 때 스켈레톤 개수
+  // =============================================================================
   const renderPlaceholder = (count: number) =>
     Array.from({ length: count });
 
   return (
     <div className="feed-container">
-      {/* Left Column: Feed Content */}
+      {/* ========== 레이아웃: 왼쪽 컬럼 (피드 본문) ========== */}
       <div className="feed-main">
-        {/* Stories */}
+        {/* ---------- 구역: 스토리 트레이 (추가 버튼 + 스토리 목록) ---------- */}
         <div className="story-tray">
           <input
             ref={storyFileInputRef}
@@ -421,7 +452,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
           ))}
         </div>
 
-        {/* Posts */}
+        {/* ---------- 구역: 포스트 목록 (로딩/에러/목록/빈 상태) ---------- */}
         <div className="feed-list">
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ig-secondary-text)' }}>
@@ -434,7 +465,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
           ) : posts.length > 0 ? (
             posts.map(post => (
               <article key={post.id} className="post">
-                {/* Post Header */}
+                {/* 포스트 헤더: 아바타, 사용자명, 위치, 더보기 */}
                 <div className="post__header">
                   <div className="post__user-info">
                     {post.user.avatar ? (
@@ -452,7 +483,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                   </button>
                 </div>
 
-                {/* Post Image */}
+                {/* 포스트 미디어: 이미지 + 더블클릭 좋아요 + 좋아요 애니메이션 */}
                 <div 
                   className="post__media"
                   onDoubleClick={() => handleDoubleClickLike(post)}
@@ -471,9 +502,10 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                   )}
                 </div>
 
-                {/* Post Actions */}
+                {/* 포스트 액션: 좋아요 | 댓글 | 공유 | 저장 */}
                 <div className="post__actions">
                   <div className="post__actions-left">
+                    {/* 좋아요 버튼 */}
                     <button
                       className={`post__action-btn ${post.isLiked ? 'post__action-btn--liked' : ''}`}
                       onClick={() => handleLike(post.id, post.isLiked || false)}
@@ -486,14 +518,16 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                         className={post.isLiked ? 'heart-liked' : ''}
                       />
                     </button>
-                    <button 
-                      className="post__action-btn" 
+                    {/* 댓글 버튼 */}
+                    <button
+                      className="post__action-btn"
                       onClick={() => onOpenComments(post)}
                       aria-label="Comment"
                     >
                       <MessageCircle size={24} />
                     </button>
-                    <button 
+                    {/* 공유 버튼 */}
+                    <button
                       className="post__action-btn"
                       onClick={() => handleShareClick(post)}
                       aria-label="Share"
@@ -501,6 +535,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                       <Send size={24} />
                     </button>
                   </div>
+                  {/* 저장 버튼 */}
                   <button
                     className={`post__action-btn ${saveAnimations[post.id] ? 'post__action-btn--saving' : ''}`}
                     onClick={() => handleSave(post.id, post.isSaved || false)}
@@ -514,7 +549,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                   </button>
                 </div>
 
-                {/* Post Content */}
+                {/* 포스트 본문: 좋아요 수, 캡션, 댓글 개수(클릭 시 댓글 열기) */}
                 <div className="post__content">
                   <div className="post__likes">{post.likes.toLocaleString()} likes</div>
                   <div className="post__caption">
@@ -530,7 +565,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               </article>
             ))
           ) : (
-            // Empty state - show placeholders
+            /* 빈 상태: 스켈레톤 포스트 3개 */
             renderPlaceholder(3).map((_, index) => (
               <article key={index} className="post">
                 <div className="post__header">
@@ -569,10 +604,10 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
         </div>
       </div>
 
-      {/* Right Column: Suggestions Sidebar */}
+      {/* ========== 레이아웃: 오른쪽 사이드바 (추천 등) ========== */}
       <aside className="feed-sidebar">
         <div className="h-sidebar">
-          {/* Current User */}
+          {/* 현재 로그인 사용자 요약 */}
           <div className="h-sidebar__user-summary">
             <div className="h-sidebar__profile">
               {currentUser?.avatar ? (
@@ -597,13 +632,13 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
             <button className="h-sidebar__btn">Switch</button>
           </div>
 
-          {/* Suggestions Header */}
+          {/* 추천 헤더 */}
           <div className="h-sidebar__suggestions-header">
             <span className="h-sidebar__label">Suggested for you</span>
             <button className="h-sidebar__btn h-sidebar__btn--black">See All</button>
           </div>
 
-          {/* Suggestions List */}
+          {/* 추천 목록 (팔로우 버튼) */}
           <div className="h-sidebar__list">
             {suggestions.length > 0
               ? suggestions.map(suggestion => (
@@ -645,7 +680,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                 ))}
           </div>
 
-          {/* Footer Links */}
+          {/* 푸터 링크 */}
           <div className="h-sidebar__footer">
             <div className="h-sidebar__links">
               <span className="h-sidebar__link">About</span>
@@ -667,7 +702,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
         </div>
       </aside>
 
-      {/* Share Modal */}
+      {/* ========== 모달: 공유 (유저 검색 → 선택 → 전송) ========== */}
       {shareModalPost && (
         <div className="share-modal-overlay" onClick={() => setShareModalPost(null)}>
           <div className="share-modal" onClick={e => e.stopPropagation()}>
@@ -739,7 +774,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
         </div>
       )}
 
-      {/* Story Modal */}
+      {/* ========== 모달: 스토리 (진행 바, 헤더, 이미지, 좌우 네비) ========== */}
       {selectedStory && (
         <div 
           className="story-modal-overlay"
@@ -770,7 +805,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               overflow: 'hidden',
             }}
           >
-            {/* Progress bar */}
+            {/* 스토리 진행 바 */}
             <div style={{
               position: 'absolute',
               top: 0,
@@ -788,7 +823,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               }} />
             </div>
 
-            {/* Header */}
+            {/* 스토리 헤더 (아바타, 사용자명, 시간, 닫기) */}
             <div style={{
               position: 'absolute',
               top: '12px',
@@ -831,7 +866,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               </button>
             </div>
 
-            {/* Story Image */}
+            {/* 스토리 이미지 */}
             <img
               src={selectedStory.imageUrl || 'https://via.placeholder.com/420x700'}
               alt="Story"
@@ -843,7 +878,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               }}
             />
 
-            {/* Left navigation area (prev) */}
+            {/* 스토리 이전(왼쪽) 영역 */}
             <div
               onClick={handlePrevStory}
               style={{
@@ -874,7 +909,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               )}
             </div>
 
-            {/* Right navigation area (next) */}
+            {/* 스토리 다음(오른쪽) 영역 */}
             <div
               onClick={handleNextStory}
               style={{
@@ -903,7 +938,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               </div>
             </div>
 
-            {/* Story counter */}
+            {/* 스토리 카운터 (n / 전체) */}
             <div style={{
               position: 'absolute',
               bottom: '20px',
@@ -918,7 +953,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
         </div>
       )}
 
-      {/* Story progress animation keyframes */}
+      {/* 스토리 진행 애니메이션 keyframes */}
       <style jsx global>{`
         @keyframes storyProgress {
           from { width: 0%; }
