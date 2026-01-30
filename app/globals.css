@@ -407,7 +407,7 @@ button {
 .sidebar:hover .sidebar__logo-text { display: block; opacity: 1; }
 .sidebar__logo-icon { display: block; flex-shrink: 0; }
 .sidebar:hover .sidebar__logo-icon { display: none; }
-.sidebar__nav { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.sidebar__nav { flex: 1; display: flex; flex-direction: column; align-items: center; color: #000; }
 .sidebar:hover .sidebar__nav { align-items: flex-start; }
 .sidebar__item { width: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px; margin: 4px 0; border-radius: 8px; transition: background var(--transition-standard), transform 0.1s ease; cursor: pointer; }
 .sidebar:hover .sidebar__item { justify-content: flex-start; }

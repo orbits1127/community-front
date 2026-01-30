@@ -6,9 +6,17 @@ import { Post, AuthUser } from '../types';
 import { postService } from '../services/dataService';
 import CommentModal from '../components/CommentModal';
 
+// =============================================================================
+// 타입 정의
+// =============================================================================
+
 interface ExploreViewProps {
   currentUser?: AuthUser | null;
 }
+
+// =============================================================================
+// 스켈레톤: 탐색 카드 플레이스홀더
+// =============================================================================
 
 const ExploreCardPlaceholder: React.FC = () => (
   <div className="explore-card">
@@ -26,12 +34,18 @@ const ExploreCardPlaceholder: React.FC = () => (
 );
 
 const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
+  // =============================================================================
+  // 상태: 포스트 목록, 로딩, 선택 포스트(모달), 좋아요/저장 애니메이션
+  // =============================================================================
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [likeAnimations, setLikeAnimations] = useState<Record<string, boolean>>({});
   const [saveAnimations, setSaveAnimations] = useState<Record<string, boolean>>({});
 
+  // =============================================================================
+  // 탐색 포스트 로드 (팔로우 제외, 최소 18개)
+  // =============================================================================
   useEffect(() => {
     const fetchExplorePosts = async () => {
       setLoading(true);
@@ -52,7 +66,9 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
     fetchExplorePosts();
   }, [currentUser?.id]);
 
-  // Handle post like
+  // =============================================================================
+  // 좋아요: 토글 + 애니메이션 + 낙관적 업데이트
+  // =============================================================================
   const handleLike = useCallback(async (postId: string, isLiked: boolean) => {
     if (!currentUser?.id) return;
 
@@ -92,7 +108,9 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
     }
   }, [currentUser?.id]);
 
-  // Handle post save
+  // =============================================================================
+  // 저장: 토글 + 애니메이션 + 낙관적 업데이트
+  // =============================================================================
   const handleSave = useCallback(async (postId: string, isSaved: boolean) => {
     if (!currentUser?.id) return;
 
@@ -132,14 +150,15 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
 
   return (
     <div className="explore-page">
+      {/* ---------- 구역: 탐색 그리드 (로딩 시 스켈레톤 / 포스트 카드 / 빈 상태) ---------- */}
       <main className="explore-grid">
         {loading ? (
-          // Show placeholders while loading
+          /* 로딩 중: 스켈레톤 9개 */
           Array.from({ length: 9 }).map((_, i) => (
             <ExploreCardPlaceholder key={`placeholder-${i}`} />
           ))
         ) : posts.length > 0 ? (
-          // Show actual posts
+          /* 포스트 카드: 클릭 시 상세 로드 후 댓글 모달 */
           posts.map((post) => (
             <div 
               key={post.id} 
@@ -180,14 +199,14 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
             </div>
           ))
         ) : (
-          // If no posts, show at least 9 placeholders
+          /* 빈 상태: 스켈레톤 9개 */
           Array.from({ length: 9 }).map((_, i) => (
             <ExploreCardPlaceholder key={`empty-${i}`} />
           ))
         )}
       </main>
 
-      {/* Comment Modal */}
+      {/* ========== 모달: 댓글 (CommentModal) ========== */}
       {selectedPost && (
         <CommentModal 
           post={selectedPost} 

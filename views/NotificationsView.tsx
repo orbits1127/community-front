@@ -7,6 +7,10 @@ import { notificationService } from '../services/dataService';
 import { formatTimeAgo, groupNotificationsByTime } from '../utils/timeUtils';
 import { Heart, UserPlus } from 'lucide-react';
 
+// =============================================================================
+// 타입 정의
+// =============================================================================
+
 interface NotificationsViewProps {
   currentUser?: AuthUser | null;
 }
@@ -15,10 +19,14 @@ interface NotificationItemProps {
   notification: Notification;
 }
 
+// =============================================================================
+// 알림 아이템: 팔로우 / 좋아요 타입별 렌더
+// =============================================================================
+
 const NotificationItem: React.FC<NotificationItemProps> = ({ notification }) => {
   const isOwnActivity = notification.isOwnActivity || false;
-  
-  // Handle follow notifications
+
+  /* 팔로우 알림 */
   if (notification.type === 'follow') {
     const displayUser = isOwnActivity && notification.followedUser
       ? notification.followedUser
@@ -26,7 +34,6 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification }) => 
 
     return (
       <div className="notification-item">
-        {/* Actor Avatar */}
         <div className="notification-item__avatar">
           {displayUser.avatar ? (
             <img 
@@ -104,11 +111,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification }) => 
               </>
             )}
           </div>
-          {/* Time */}
           <span className="notification-item__time">{formatTimeAgo(notification.createdAt)}</span>
         </div>
 
-        {/* No action for follow notifications */}
         <div className="notification-item__action" style={{ display: 'none' }}></div>
       </div>
     );
@@ -125,7 +130,6 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification }) => 
 
   return (
     <div className="notification-item">
-      {/* Actor Avatar */}
       <div className="notification-item__avatar">
         {displayUser.avatar ? (
           <img 
@@ -155,9 +159,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification }) => 
           </div>
         )}
       </div>
-      
+
       <div className="notification-item__content">
-        {/* Notification Text */}
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -203,11 +206,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification }) => 
             </>
           )}
         </div>
-        {/* Time */}
         <span className="notification-item__time">{formatTimeAgo(notification.createdAt)}</span>
       </div>
 
-      {/* Post Thumbnail */}
       <div className="notification-item__action">
         {notification.post.imageUrl && (
           <img 
@@ -239,10 +240,16 @@ const NotificationItemPlaceholder: React.FC = () => (
 );
 
 const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) => {
+  // =============================================================================
+  // 상태: 알림 목록, 로딩, 에러
+  // =============================================================================
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // =============================================================================
+  // 알림 로드 (like / follow 타입만 필터)
+  // =============================================================================
   useEffect(() => {
     if (!currentUser?.id) {
       setLoading(false);
@@ -275,13 +282,15 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
     fetchNotifications();
   }, [currentUser?.id]);
 
+  // 시간대별 그룹 (Today / This Week / Earlier)
   const groupedNotifications = groupNotificationsByTime(notifications);
 
   return (
     <div className="notifications-page">
       <div className="notifications-container">
         <h1 className="notifications-title">Notifications</h1>
-        
+
+        {/* ---------- 구역: 로딩 / 에러 / 빈 상태 / 그룹별 알림 목록 ---------- */}
         {loading ? (
           <>
             <section className="notifications-section">
@@ -327,6 +336,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
           </div>
         ) : (
           <>
+            {/* 오늘 */}
             {groupedNotifications.today.length > 0 && (
               <section className="notifications-section">
                 <h2 className="notifications-section-label">Today</h2>
@@ -338,6 +348,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
               </section>
             )}
 
+            {/* 이번 주 */}
             {groupedNotifications.thisWeek.length > 0 && (
               <section className="notifications-section">
                 <h2 className="notifications-section-label">This Week</h2>
@@ -349,6 +360,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
               </section>
             )}
 
+            {/* 그 이전 */}
             {groupedNotifications.earlier.length > 0 && (
               <section className="notifications-section">
                 <h2 className="notifications-section-label">Earlier</h2>

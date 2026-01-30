@@ -7,6 +7,10 @@ import { userService, postService } from '../services/dataService';
 import { AuthUser } from '../types';
 import PostComponent from '../components/Post';
 
+// =============================================================================
+// 타입 정의
+// =============================================================================
+
 interface SearchViewProps {
   currentUser?: AuthUser | null;
   onOpenComments?: (post: Post) => void;
@@ -20,6 +24,10 @@ interface SearchHistoryItem {
   searchedAt: string;
 }
 
+// =============================================================================
+// 스켈레톤: 검색 결과 아이템 플레이스홀더
+// =============================================================================
+
 const SearchItemPlaceholder: React.FC = () => (
   <div className="search-page__item">
     <div className="search-page__profile-placeholder"></div>
@@ -31,6 +39,9 @@ const SearchItemPlaceholder: React.FC = () => (
 );
 
 const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) => {
+  // =============================================================================
+  // 상태: 검색어, 최근 검색, 사용자/포스트 검색 결과, 로딩
+  // =============================================================================
   const [query, setQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -38,7 +49,9 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
   const [loading, setLoading] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(false);
 
-  // Load search history from localStorage on mount
+  // =============================================================================
+  // 최근 검색: 로드 / 저장 / 모두 지우기 / 항목 제거
+  // =============================================================================
   useEffect(() => {
     if (!currentUser?.id) return;
     
@@ -57,7 +70,6 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
     loadSearchHistory();
   }, [currentUser?.id]);
 
-  // Save search history to localStorage
   const saveSearchHistory = useCallback((item: SearchHistoryItem) => {
     if (!currentUser?.id) return;
 
@@ -81,7 +93,6 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
     }
   }, [currentUser?.id]);
 
-  // Clear all search history
   const clearSearchHistory = useCallback(() => {
     if (!currentUser?.id) return;
     
@@ -93,7 +104,6 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
     }
   }, [currentUser?.id]);
 
-  // Remove single item from search history
   const removeSearchHistoryItem = useCallback((itemId: string) => {
     if (!currentUser?.id) return;
 
@@ -110,7 +120,9 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
     }
   }, [currentUser?.id]);
 
-  // Handle search with debounce
+  // =============================================================================
+  // 검색: 디바운스(300ms) 후 사용자 + 포스트 동시 검색
+  // =============================================================================
   useEffect(() => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -149,7 +161,7 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
     return () => clearTimeout(timer);
   }, [query, currentUser?.id]);
 
-  // Handle user click from search results
+  // 검색 결과 사용자 클릭 → 최근 검색에 추가 후 검색어 비움
   const handleUserClick = useCallback((user: User) => {
     // Save to search history
     const historyItem: SearchHistoryItem = {
@@ -165,13 +177,13 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
     setQuery('');
   }, [saveSearchHistory]);
 
-  // Handle user click from search history
+  // 최근 검색 항목 클릭 → 해당 항목을 맨 위로
   const handleHistoryItemClick = useCallback((item: SearchHistoryItem) => {
     // Move clicked item to top of history
     saveSearchHistory(item);
   }, [saveSearchHistory]);
 
-  // Handle search button click from search history
+  // 최근 검색에서 검색 버튼 클릭 → 해당 사용자명으로 검색 실행
   const handleSearchFromHistory = useCallback((item: SearchHistoryItem, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent item click
     // Set query to username to trigger search
@@ -180,7 +192,7 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
 
   return (
     <div className="search-page">
-      {/* 1. 상단 중앙 정렬 검색창 */}
+      {/* ---------- 구역: 상단 검색창 ---------- */}
       <header className="search-page__header">
         <div className="search-page__input-wrapper">
           <input 
@@ -193,11 +205,11 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
         </div>
       </header>
 
-      {/* 2. 검색 입력창 하단 결과 영역 */}
+      {/* ---------- 구역: 검색 결과 영역 (최근 검색 | 계정 + 관련 피드) ---------- */}
       <main className="search-page__content">
         {!query ? (
           <>
-            {/* 최근 검색 리스트 */}
+            {/* 최근 검색: 모두 지우기 + 목록 (클릭/검색/제거 버튼) */}
             {searchHistory.length > 0 && (
               <>
                 <div className="search-page__section-header">
@@ -305,7 +317,7 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
           </>
         ) : (
           <>
-            {/* 검색 결과: 사용자 */}
+            {/* 검색 결과: 계정(사용자) 목록 */}
             <div className="search-page__section-header">
               <span className="search-page__title">계정</span>
             </div>
@@ -374,7 +386,7 @@ const SearchView: React.FC<SearchViewProps> = ({ currentUser, onOpenComments }) 
               )}
             </div>
 
-            {/* 관련 피드 */}
+            {/* 검색 결과: 관련 피드 (PostComponent, 댓글 열기) */}
             {(searchPosts.length > 0 || loadingPosts) && (
               <>
                 <div className="search-page__section-header" style={{ marginTop: '24px' }}>

@@ -4,9 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { AuthUser, LoginCredentials, SignupData } from '../types';
 import { authService } from '../services/dataService';
 
+// =============================================================================
+// 타입 정의
+// =============================================================================
+
 interface LoginViewProps {
   onLogin: (user?: AuthUser) => void;
 }
+
+// =============================================================================
+// 상수: 슬라이드쇼 이미지, 푸터 링크
+// =============================================================================
 
 const screenshots = [
   'https://static.cdninstagram.com/images/instagram/xig/homepage/phones/screenshot1.png',
@@ -22,13 +30,16 @@ const footerLinks = [
 ];
 
 const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
+  // =============================================================================
+  // 상태: 로그인/회원가입 모드, 비밀번호 표시, 슬라이드, 로딩, 에러
+  // =============================================================================
   const [isSignup, setIsSignup] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
+  // 상태: 폼 데이터 (이메일, 이름, 사용자명, 비밀번호)
   const [formData, setFormData] = useState<LoginCredentials & SignupData>({
     username: '',
     password: '',
@@ -36,7 +47,9 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     fullName: '',
   });
 
-  // Slideshow effect
+  // =============================================================================
+  // 슬라이드쇼: 5초마다 다음 이미지
+  // =============================================================================
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % screenshots.length);
@@ -44,19 +57,19 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle input change
+  // =============================================================================
+  // 폼: 입력 변경 / 유효성 검사 / 로그인 / 회원가입 / 모드 전환
+  // =============================================================================
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError(null);
   };
 
-  // Validate form
   const isFormValid = isSignup
     ? formData.email && formData.fullName && formData.username && formData.password
     : formData.username && formData.password;
 
-  // Handle login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) return;
@@ -86,7 +99,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     }
   };
 
-  // Handle signup
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) return;
@@ -116,7 +128,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     }
   };
 
-  // Switch between login and signup
   const handleModeSwitch = () => {
     setIsSignup(!isSignup);
     setFormData({ username: '', password: '', email: '', fullName: '' });
@@ -126,7 +137,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   return (
     <div className="login-page">
       <div className="login-container">
-        {/* Phone mockup with slideshow */}
+        {/* ---------- 구역: 왼쪽 휴대폰 목업 + 슬라이드쇼 ---------- */}
         <div className="login-phone-mockup">
           <div className="login-phone-frame">
             {screenshots.map((src, index) => (
@@ -140,9 +151,9 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* Login forms */}
+        {/* ---------- 구역: 로그인/회원가입 폼 ---------- */}
         <div className="login-forms">
-          {/* Main card */}
+          {/* 메인 카드: 로고, 에러, 폼(이메일/이름/사용자명/비밀번호), 제출, Facebook/비밀번호 찾기 */}
           <div className="login-card">
             <h1 className="login-logo">Instagram</h1>
 
@@ -277,7 +288,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             )}
           </div>
 
-          {/* Switch card */}
+          {/* 로그인 ↔ 회원가입 전환 카드 */}
           <div className="login-card login-card--switch">
             <p>
               {isSignup ? "Have an account?" : "Don't have an account?"}{" "}
@@ -287,7 +298,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             </p>
           </div>
 
-          {/* App download section */}
+          {/* 앱 다운로드 (App Store, Google Play) */}
           <div className="login-app-download">
             <p>Get the app.</p>
             <div className="login-app-badges">
@@ -310,7 +321,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* ---------- 구역: 푸터 링크 + 언어 선택 + 저작권 ---------- */}
       <footer className="login-footer">
         <div className="login-footer-links">
           {footerLinks.map((link, index) => (
