@@ -7,7 +7,7 @@ import { postService } from '../services/dataService';
 import CommentModal from '../components/CommentModal';
 
 // =============================================================================
-// 타입 정의
+// Types
 // =============================================================================
 
 interface ExploreViewProps {
@@ -15,7 +15,7 @@ interface ExploreViewProps {
 }
 
 // =============================================================================
-// 스켈레톤: 탐색 카드 플레이스홀더
+// Skeleton: explore card placeholder
 // =============================================================================
 
 const ExploreCardPlaceholder: React.FC = () => (
@@ -35,7 +35,7 @@ const ExploreCardPlaceholder: React.FC = () => (
 
 const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
   // =============================================================================
-  // 상태: 포스트 목록, 로딩, 선택 포스트(모달), 좋아요/저장 애니메이션
+  // State: posts list, loading, selected post (modal), like/save animations
   // =============================================================================
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,14 +44,14 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
   const [saveAnimations, setSaveAnimations] = useState<Record<string, boolean>>({});
 
   // =============================================================================
-  // 탐색 포스트 로드 (팔로우 제외, 최소 18개)
+  // Explore posts load (exclude following, min 18)
   // =============================================================================
   useEffect(() => {
     const fetchExplorePosts = async () => {
       setLoading(true);
       try {
         // Pass userId to exclude followed users' posts
-        // Fetch at least 18 posts (9개 이상)
+        // Fetch at least 18 posts
         const postsRes = await postService.getExplorePosts(1, currentUser?.id, 18);
         if (postsRes.success && postsRes.data) {
           setPosts(postsRes.data.items || []);
@@ -67,7 +67,7 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
   }, [currentUser?.id]);
 
   // =============================================================================
-  // 좋아요: 토글 + 애니메이션 + 낙관적 업데이트
+  // Like: toggle + animation + optimistic update
   // =============================================================================
   const handleLike = useCallback(async (postId: string, isLiked: boolean) => {
     if (!currentUser?.id) return;
@@ -109,7 +109,7 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
   }, [currentUser?.id]);
 
   // =============================================================================
-  // 저장: 토글 + 애니메이션 + 낙관적 업데이트
+  // Save: toggle + animation + optimistic update
   // =============================================================================
   const handleSave = useCallback(async (postId: string, isSaved: boolean) => {
     if (!currentUser?.id) return;
@@ -150,15 +150,15 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
 
   return (
     <div className="explore-page">
-      {/* ---------- 구역: 탐색 그리드 (로딩 시 스켈레톤 / 포스트 카드 / 빈 상태) ---------- */}
+      {/* ---------- Section: explore grid (loading skeleton / post cards / empty) ---------- */}
       <main className="explore-grid">
         {loading ? (
-          /* 로딩 중: 스켈레톤 9개 */
+          /* Loading: 9 skeletons */
           Array.from({ length: 9 }).map((_, i) => (
             <ExploreCardPlaceholder key={`placeholder-${i}`} />
           ))
         ) : posts.length > 0 ? (
-          /* 포스트 카드: 클릭 시 상세 로드 후 댓글 모달 */
+          /* Post card: click loads detail then comment modal */
           posts.map((post) => (
             <div 
               key={post.id} 
@@ -199,14 +199,14 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
             </div>
           ))
         ) : (
-          /* 빈 상태: 스켈레톤 9개 */
+          /* Empty state: 9 skeletons */
           Array.from({ length: 9 }).map((_, i) => (
             <ExploreCardPlaceholder key={`empty-${i}`} />
           ))
         )}
       </main>
 
-      {/* ========== 모달: 댓글 (CommentModal) ========== */}
+      {/* ========== Modal: comments (CommentModal) ========== */}
       {selectedPost && (
         <CommentModal 
           post={selectedPost} 

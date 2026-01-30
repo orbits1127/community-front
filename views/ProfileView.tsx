@@ -7,7 +7,7 @@ import { userService, postService, highlightService, storyService } from '../ser
 import CommentModal from '../components/CommentModal';
 
 // =============================================================================
-// 타입 정의
+// Types
 // =============================================================================
 
 interface ProfileViewProps {
@@ -18,7 +18,7 @@ interface ProfileViewProps {
 
 const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, currentUser }) => {
   // =============================================================================
-  // 상태: 프로필 데이터 (프로필, 포스트, 저장 포스트, 하이라이트, 탭, 로딩/에러)
+  // State: profile data (profile, posts, saved posts, highlights, tab, loading/error)
   // =============================================================================
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -29,17 +29,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 상태: 스토리 모달 (선택 스토리, 인덱스, 하이라이트 스토리 목록)
+  // State: story modal (selected story, index, highlight stories list)
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
   const [highlightStories, setHighlightStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
 
-  // 상태: 포스트 모달 (선택 포스트, 상세 로딩)
+  // State: post modal (selected post, detail loading)
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [loadingPost, setLoadingPost] = useState(false);
 
-  // 상태: 하이라이트 생성 모달 (이름, 선택 스토리 ID, 내 스토리 목록)
+  // State: create highlight modal (name, selected story ids, my stories list)
   const [showCreateHighlightModal, setShowCreateHighlightModal] = useState(false);
   const [createHighlightName, setCreateHighlightName] = useState('');
   const [selectedStoryIds, setSelectedStoryIds] = useState<string[]>([]);
@@ -49,7 +49,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   const [createHighlightError, setCreateHighlightError] = useState<string | null>(null);
 
   // =============================================================================
-  // 프로필 데이터 로드 (프로필, 포스트, 하이라이트)
+  // Profile data load (profile, posts, highlights)
   // =============================================================================
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -91,7 +91,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
     fetchProfileData();
   }, [userId]);
 
-  // 저장 탭 활성 시 저장 포스트 로드
+  // Load saved posts when saved tab is active
   useEffect(() => {
     const fetchSavedPosts = async () => {
       if (activeTab !== 'saved' || !userId || !isOwnProfile) {
@@ -119,7 +119,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   }, [activeTab, userId, isOwnProfile]);
 
   // =============================================================================
-  // 팔로우: 팔로우/언팔로우 토글
+  // Follow: follow/unfollow toggle
   // =============================================================================
   const handleFollowToggle = async () => {
     if (!profile || !userId) return;
@@ -146,7 +146,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   };
 
   // =============================================================================
-  // 하이라이트: 생성 모달 열기 / 스토리 선택 토글 / 하이라이트 생성
+  // Highlight: open create modal / story selection toggle / create highlight
   // =============================================================================
   const handleOpenCreateHighlight = useCallback(async () => {
     if (!userId) return;
@@ -217,7 +217,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
     }
   }, [userId, createHighlightName, selectedStoryIds]);
 
-  // 하이라이트 클릭: 스토리 목록 로드 후 모달 표시
+  // Highlight click: load stories then show modal
   const handleHighlightClick = useCallback(async (highlight: Highlight) => {
     if (!userId) return;
     
@@ -239,7 +239,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   }, [userId]);
 
   // =============================================================================
-  // 스토리 모달: 이전/다음 이동, 키보드(좌우, ESC)
+  // Story modal: prev/next navigation, keyboard (arrows, ESC)
   // =============================================================================
   const handlePrevStory = useCallback(() => {
     if (storyIndex > 0) {
@@ -279,7 +279,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedStory, handlePrevStory, handleNextStory]);
 
-  // 탭 정의 (POSTS, REELS, SAVED, TAGGED) — 본인만 SAVED 표시
+  // Tab definitions (POSTS, REELS, SAVED, TAGGED) — SAVED only for own profile
   const tabs = [
     { id: 'posts', label: 'POSTS', icon: <Grid size={12} /> },
     { id: 'reels', label: 'REELS', icon: <Film size={12} /> },
@@ -289,13 +289,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
 
   const filteredTabs = tabs.filter(tab => !tab.showOnlyOwn || isOwnProfile);
 
-  // UI 헬퍼: 스켈레톤 개수
+  // UI helper: skeleton count
   const renderPlaceholder = (count: number) => Array.from({ length: count });
 
   return (
     <div className="profile-page">
       <div className="profile-container">
-        {/* ---------- 구역: 프로필 헤더 (아바타, 사용자명, 액션, 통계, 바이오) ---------- */}
+        {/* ---------- Section: profile header (avatar, username, actions, stats, bio) ---------- */}
         <header className="profile-header">
           <div className="profile-avatar-section">
             <div className="profile-avatar-wrapper">
@@ -308,7 +308,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
           </div>
 
           <div className="profile-info">
-            {/* 사용자명 행 + 버튼(Edit/Follow, Message, Settings) */}
+            {/* Username row + buttons (Edit/Follow, Message, Settings) */}
             <div className="profile-username-row">
               {profile ? (
                 <h2 className="profile-username">{profile.username}</h2>
@@ -338,7 +338,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               </div>
             </div>
 
-            {/* 통계 행: posts / followers / following */}
+            {/* Stats row: posts / followers / following */}
             <div className="profile-stats">
               <div className="profile-stat">
                 <span className="profile-stat-number">{profile?.postsCount ?? 0}</span> posts
@@ -356,7 +356,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               </div>
             </div>
 
-            {/* 바이오: 이름, 소개, 웹사이트 */}
+            {/* Bio: name, description, website */}
             <div className="profile-bio">
               {profile ? (
                 <>
@@ -379,7 +379,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
           </div>
         </header>
 
-        {/* 모바일용 통계 (posts / followers / following) */}
+        {/* Mobile stats (posts / followers / following) */}
         <div className="profile-stats-mobile">
           <div className="profile-stat-mobile">
             <span className="profile-stat-number">{profile?.postsCount ?? 0}</span>
@@ -399,7 +399,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
           </div>
         </div>
 
-        {/* ---------- 구역: 하이라이트 (새로 만들기 + 목록, 클릭 시 스토리 모달) ---------- */}
+        {/* ---------- Section: highlights (new + list, click opens story modal) ---------- */}
         <div className="profile-highlights">
           {isOwnProfile && (
             <button
@@ -442,7 +442,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               ))}
         </div>
 
-        {/* ---------- 구역: 탭 (POSTS / REELS / SAVED / TAGGED) ---------- */}
+        {/* ---------- Section: tabs (POSTS / REELS / SAVED / TAGGED) ---------- */}
         <div className="profile-tabs">
           {filteredTabs.map(tab => (
             <button
@@ -456,10 +456,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
           ))}
         </div>
 
-        {/* ---------- 구역: 포스트 그리드 (저장 탭 | 일반 탭, 클릭 시 포스트 모달) ---------- */}
+        {/* ---------- Section: post grid (saved tab | posts tab, click opens post modal) ---------- */}
         <div className="profile-grid">
           {activeTab === 'saved' ? (
-            /* 저장된 포스트 뷰 */
+            /* Saved posts view */
             loadingSaved ? (
               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--ig-secondary-text)' }}>
                 Loading...
@@ -616,7 +616,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               </div>
             ))
           ) : (
-            /* 빈 상태: 스켈레톤 9개 */
+            /* Empty state: 9 skeletons */
             renderPlaceholder(9).map((_, index) => (
               <div key={index} className="profile-post">
                 <div className="profile-post-placeholder"></div>
@@ -626,7 +626,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
         </div>
       </div>
 
-      {/* ========== 모달: 하이라이트 생성 (이름 입력, 스토리 선택, 만들기) ========== */}
+      {/* ========== Modal: create highlight (name input, story selection, create) ========== */}
       {showCreateHighlightModal && (
         <div
           className="story-modal-overlay"
@@ -785,7 +785,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
         </div>
       )}
 
-      {/* ========== 모달: 스토리 (진행 바, 헤더, 이미지, 좌우 네비) ========== */}
+      {/* ========== Modal: story (progress bar, header, image, prev/next nav) ========== */}
       {selectedStory && (
         <div 
           className="story-modal-overlay"
@@ -819,7 +819,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               overflow: 'hidden',
             }}
           >
-            {/* 스토리 진행 바 */}
+            {/* Story progress bar */}
             <div style={{
               position: 'absolute',
               top: 0,
@@ -837,7 +837,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               }} />
             </div>
 
-            {/* 스토리 헤더 (아바타, 사용자명, 시간, 닫기) */}
+            {/* Story header (avatar, username, time, close) */}
             <div style={{
               position: 'absolute',
               top: '12px',
@@ -883,7 +883,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               </button>
             </div>
 
-            {/* 스토리 이미지 */}
+            {/* Story image */}
             <img
               src={selectedStory.imageUrl || 'https://via.placeholder.com/420x700'}
               alt="Story"
@@ -895,7 +895,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               }}
             />
 
-            {/* 스토리 이전(왼쪽) 영역 */}
+            {/* Story prev (left) area */}
             <div
               onClick={handlePrevStory}
               style={{
@@ -926,7 +926,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               )}
             </div>
 
-            {/* 스토리 다음(오른쪽) 영역 */}
+            {/* Story next (right) area */}
             <div
               onClick={handleNextStory}
               style={{
@@ -955,7 +955,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               </div>
             </div>
 
-            {/* 스토리 카운터 (n / 전체) */}
+            {/* Story counter (n / total) */}
             {highlightStories.length > 1 && (
               <div style={{
                 position: 'absolute',
@@ -969,7 +969,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               </div>
             )}
 
-            {/* 스토리 로딩 오버레이 */}
+            {/* Story loading overlay */}
             {loadingStories && (
               <div style={{
                 position: 'absolute',
@@ -990,7 +990,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
         </div>
       )}
 
-      {/* ========== 모달: 댓글 (CommentModal, 댓글 추가 시 포스트 카운트 갱신) ========== */}
+      {/* ========== Modal: comments (CommentModal, update post count on new comment) ========== */}
       {selectedPost && (
         <CommentModal 
           post={selectedPost} 

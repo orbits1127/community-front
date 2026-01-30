@@ -3,7 +3,7 @@
 import React from 'react';
 
 // =============================================================================
-// 스켈레톤: 릴스 액션 아이템 (좋아요/댓글/공유/저장 등)
+// Skeleton: reel action item (like/comment/share/save etc.)
 // =============================================================================
 
 const ReelActionItem: React.FC = () => (
@@ -14,12 +14,12 @@ const ReelActionItem: React.FC = () => (
 );
 
 // =============================================================================
-// 스켈레톤: 릴스 한 개 (비디오 영역 + 우측 액션 버튼)
+// Skeleton: single reel (video area + right action buttons)
 // =============================================================================
 
 const ReelPlaceholder: React.FC = () => (
   <div className="reel-container">
-    {/* 중앙: 세로형 비디오 영역 (9:16) + 하단 정보 오버레이 */}
+    {/* Center: vertical video area (9:16) + bottom info overlay */}
     <div className="reel-video-placeholder">
       <div className="reel-info-overlay">
         <div className="reel-user-placeholder">
@@ -31,7 +31,7 @@ const ReelPlaceholder: React.FC = () => (
       </div>
     </div>
 
-    {/* 우측: 액션 버튼 (좋아요 / 댓글 / 공유 / 저장 / 더보기) */}
+    {/* Right: action buttons (like / comment / share / save / more) */}
     <aside className="reel-actions">
       <ReelActionItem />
       <ReelActionItem />
@@ -43,13 +43,13 @@ const ReelPlaceholder: React.FC = () => (
 );
 
 // =============================================================================
-// 릴스 뷰: 스냅 스크롤로 다음 릴스 전환 (플레이스홀더 10개)
+// Reels view: snap scroll to next reel (10 placeholders)
 // =============================================================================
 
 const ReelsView: React.FC = () => {
   return (
     <div className="reels-page">
-      {/* ---------- 구역: 릴스 목록 (스냅 스크롤) ---------- */}
+      {/* ---------- Section: reels list (snap scroll) ---------- */}
       {Array.from({ length: 10 }).map((_, i) => (
         <ReelPlaceholder key={`reel-${i}`} />
       ))}

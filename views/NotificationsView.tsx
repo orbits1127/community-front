@@ -8,7 +8,7 @@ import { formatTimeAgo, groupNotificationsByTime } from '../utils/timeUtils';
 import { Heart, UserPlus } from 'lucide-react';
 
 // =============================================================================
-// 타입 정의
+// Types
 // =============================================================================
 
 interface NotificationsViewProps {
@@ -20,13 +20,13 @@ interface NotificationItemProps {
 }
 
 // =============================================================================
-// 알림 아이템: 팔로우 / 좋아요 타입별 렌더
+// Notification item: render by type (follow / like)
 // =============================================================================
 
 const NotificationItem: React.FC<NotificationItemProps> = ({ notification }) => {
   const isOwnActivity = notification.isOwnActivity || false;
 
-  /* 팔로우 알림 */
+  /* Follow notification */
   if (notification.type === 'follow') {
     const displayUser = isOwnActivity && notification.followedUser
       ? notification.followedUser
@@ -241,14 +241,14 @@ const NotificationItemPlaceholder: React.FC = () => (
 
 const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) => {
   // =============================================================================
-  // 상태: 알림 목록, 로딩, 에러
+  // State: notifications list, loading, error
   // =============================================================================
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // =============================================================================
-  // 알림 로드 (like / follow 타입만 필터)
+  // Load notifications (filter like / follow only)
   // =============================================================================
   useEffect(() => {
     if (!currentUser?.id) {
@@ -282,7 +282,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
     fetchNotifications();
   }, [currentUser?.id]);
 
-  // 시간대별 그룹 (Today / This Week / Earlier)
+  // Group by time (Today / This Week / Earlier)
   const groupedNotifications = groupNotificationsByTime(notifications);
 
   return (
@@ -290,7 +290,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
       <div className="notifications-container">
         <h1 className="notifications-title">Notifications</h1>
 
-        {/* ---------- 구역: 로딩 / 에러 / 빈 상태 / 그룹별 알림 목록 ---------- */}
+        {/* ---------- Section: loading / error / empty / grouped notification list ---------- */}
         {loading ? (
           <>
             <section className="notifications-section">
@@ -336,7 +336,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
           </div>
         ) : (
           <>
-            {/* 오늘 */}
+            {/* Today */}
             {groupedNotifications.today.length > 0 && (
               <section className="notifications-section">
                 <h2 className="notifications-section-label">Today</h2>
@@ -348,7 +348,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
               </section>
             )}
 
-            {/* 이번 주 */}
+            {/* This week */}
             {groupedNotifications.thisWeek.length > 0 && (
               <section className="notifications-section">
                 <h2 className="notifications-section-label">This Week</h2>
@@ -360,7 +360,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ currentUser }) =>
               </section>
             )}
 
-            {/* 그 이전 */}
+            {/* Earlier */}
             {groupedNotifications.earlier.length > 0 && (
               <section className="notifications-section">
                 <h2 className="notifications-section-label">Earlier</h2>

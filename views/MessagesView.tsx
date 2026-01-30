@@ -6,7 +6,7 @@ import { Conversation, Message, AuthUser } from '../types';
 import { messageService } from '../services/dataService';
 
 // =============================================================================
-// 타입 정의
+// Types
 // =============================================================================
 
 interface MessagesViewProps {
@@ -14,7 +14,7 @@ interface MessagesViewProps {
 }
 
 // =============================================================================
-// 스켈레톤: 대화 목록 아이템 플레이스홀더
+// Skeleton: conversation list item placeholder
 // =============================================================================
 
 const ConversationItemPlaceholder: React.FC = () => (
@@ -29,7 +29,7 @@ const ConversationItemPlaceholder: React.FC = () => (
 
 const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   // =============================================================================
-  // 상태: 대화 목록, 선택 대화, 메시지 목록, 입력 텍스트, 로딩/전송 중
+  // State: conversations list, selected conversation, messages, input text, loading/sending
   // =============================================================================
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -41,7 +41,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   // =============================================================================
-  // 대화 목록 로드 (API → 포맷팅 후 저장, 첫 대화 자동 선택)
+  // Load conversations (API → format → store, auto-select first)
   // =============================================================================
   useEffect(() => {
     const fetchConversations = async () => {
@@ -88,7 +88,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   }, [currentUser?.id]);
 
   // =============================================================================
-  // 선택 대화의 메시지 로드 (API → 포맷팅 후 저장)
+  // Load messages for selected conversation (API → format → store)
   // =============================================================================
   const fetchMessages = useCallback(async (conversationId: string) => {
     setLoadingMessages(true);
@@ -117,7 +117,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
     }
   }, []);
 
-  // 선택된 대화 ID (불필요한 재요청 방지)
+  // Current conversation ID (avoid unnecessary refetch)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -135,7 +135,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
     }
   }, [currentConversationId, fetchMessages]);
 
-  // 메시지 변경 시 하단으로 스크롤
+  // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -143,7 +143,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   }, [messages]);
 
   // =============================================================================
-  // 메시지 전송: 낙관적 업데이트 → API 전송 → 성공 시 대화 목록 갱신
+  // Send message: optimistic update → API send → refresh conversations on success
   // =============================================================================
   const handleSendMessage = useCallback(async () => {
     if (!messageText.trim() || !currentUser?.id || !selectedConversation || sending) return;
@@ -295,7 +295,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
     }
   }, [messageText, currentUser, selectedConversation, sending]);
 
-  // 시간 포맷 (방금 / n분 전 / n시간 전 / n일 전 / 날짜)
+  // Time format (just now / n mins ago / n hours ago / n days ago / date)
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -315,7 +315,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
 
   return (
     <div className="messages-page">
-      {/* ---------- 구역: 좌측 사이드바 (대화 리스트, 검색 버튼) ---------- */}
+      {/* ---------- Section: left sidebar (conversation list, search button) ---------- */}
       <aside className="messages-sidebar">
         <header className="messages-sidebar__header">
           <div className="messages-sidebar__header-text" style={{ fontSize: '20px', fontWeight: 600 }}>
@@ -374,11 +374,11 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
         </div>
       </aside>
 
-      {/* ---------- 구역: 우측 대화 영역 (헤더, 메시지 목록, 입력창) ---------- */}
+      {/* ---------- Section: right conversation area (header, message list, input) ---------- */}
       <main className="messages-content">
         {selectedConversation && otherParticipant ? (
           <>
-            {/* 상단: 상대 사용자 정보 바 */}
+            {/* Header: other user info bar */}
             <header className="messages-content__header">
               <img
                 src={otherParticipant.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop'}
@@ -395,7 +395,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
               </div>
             </header>
 
-            {/* 중앙: 메시지 버블 (보낸/받은 구분) */}
+            {/* Body: message bubbles (sent/received) */}
             <div className="messages-content__body" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
               {loadingMessages ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--ig-secondary-text)' }}>
@@ -443,7 +443,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
               )}
             </div>
 
-            {/* 하단: 메시지 입력창 + 전송 버튼 (Enter 전송) */}
+            {/* Footer: message input + send button (Enter to send) */}
             <footer className="messages-content__footer">
               <div className="messages-input-bar" style={{ 
                 display: 'flex', 
