@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
     "dev": "next dev",
@@ -33,6 +33,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "~5.8.2"
   }
 }

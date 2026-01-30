@@ -94,6 +94,12 @@ async function main() {
   await prisma.like.deleteMany();
   await prisma.post.deleteMany();
   await prisma.follow.deleteMany();
+  // sessions 테이블이 있을 때만 삭제 (마이그레이션 전 DB에서는 테이블이 없을 수 있음)
+  try {
+    await prisma.session.deleteMany();
+  } catch {
+    // 테이블이 없으면 무시
+  }
   await prisma.user.deleteMany();
 
   // 비밀번호 해시
