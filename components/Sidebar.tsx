@@ -106,7 +106,7 @@ export default function Sidebar() {
             return (
               <div
                 key={item.id}
-                className="sidebar__item"
+                className="sidebar__item sidebar__item--create"
                 onClick={openCreateModal}
                 role="button"
                 tabIndex={0}
