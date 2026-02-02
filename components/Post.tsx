@@ -17,7 +17,7 @@ const Post: React.FC<PostProps> = ({ post, onOpenComments }) => {
       {/* Header */}
       <header className="post__header">
         <div className="post__user-info">
-          <img src={post.user.avatar} alt={post.user.username} className="post__avatar" />
+          <img src={post.user.avatar ?? ''} alt={post.user.username} className="post__avatar" />
           <div className="post__user-meta">
             <span className="post__username">{post.user.username}</span>
             {post.location && <span className="post__location">{post.location}</span>}
@@ -31,7 +31,7 @@ const Post: React.FC<PostProps> = ({ post, onOpenComments }) => {
       {/* Media Content */}
       <div className="post__media">
         <img 
-          src={post.imageUrl} 
+          src={post.imageUrl ?? ''} 
           alt="Post content" 
           className="post__img"
           onDoubleClick={() => setLiked(true)}

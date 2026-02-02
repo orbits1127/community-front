@@ -34,6 +34,7 @@ function generateMockPosts(count: number): Post[] {
 
   return mockData.slice(0, count).map((item, index): Post => ({
     id: `post-${index}-${Date.now()}`,
+    userId: `user-${index}`,
     user: {
       id: `user-${index}`,
       username: item.username,
@@ -46,6 +47,7 @@ function generateMockPosts(count: number): Post[] {
     likes: item.likes,
     commentsCount: item.commentsCount,
     createdAt: "JUST NOW",
+    updatedAt: "JUST NOW",
   }));
 }
 
@@ -99,6 +101,7 @@ export async function generatePosts(count: number = 5, signal?: AbortSignal): Pr
     const data: GeminiPostResponse[] = JSON.parse(text);
     return data.map((item, index): Post => ({
       id: `post-${index}-${Date.now()}`,
+      userId: `user-${index}`,
       user: {
         id: `user-${index}`,
         username: item.username.toLowerCase().replace(/\s+/g, '_'),
@@ -111,6 +114,7 @@ export async function generatePosts(count: number = 5, signal?: AbortSignal): Pr
       likes: item.likes,
       commentsCount: item.commentsCount,
       createdAt: "JUST NOW",
+      updatedAt: "JUST NOW",
     }));
   } catch (error) {
     console.error("Error generating posts with Gemini:", error);

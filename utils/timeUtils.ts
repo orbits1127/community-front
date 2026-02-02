@@ -42,19 +42,21 @@ export function formatTimeAgo(date: string | Date): string {
 /**
  * Group notifications by time period (Today, This Week, Earlier)
  */
-export function groupNotificationsByTime(notifications: Array<{ createdAt: string }>): {
-  today: typeof notifications;
-  thisWeek: typeof notifications;
-  earlier: typeof notifications;
+export function groupNotificationsByTime<T extends { createdAt: string }>(
+  notifications: T[]
+): {
+  today: T[];
+  thisWeek: T[];
+  earlier: T[];
 } {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekAgo = new Date(today);
   weekAgo.setDate(weekAgo.getDate() - 7);
 
-  const todayNotifications: typeof notifications = [];
-  const thisWeekNotifications: typeof notifications = [];
-  const earlierNotifications: typeof notifications = [];
+  const todayNotifications: T[] = [];
+  const thisWeekNotifications: T[] = [];
+  const earlierNotifications: T[] = [];
 
   notifications.forEach((notification) => {
     const createdAt = new Date(notification.createdAt);
