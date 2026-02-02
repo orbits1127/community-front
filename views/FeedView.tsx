@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Post, Story, Suggestion, AuthUser, User } from '../types';
 import { postService, storyService, userService, messageService } from '../services/dataService';
+import { useApp } from '../contexts/AppContext';
+import LoginModal from '../components/LoginModal';
 
 // =============================================================================
 // Types
@@ -17,6 +19,9 @@ interface FeedViewProps {
 }
 
 const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refreshKey }) => {
+  const { setCurrentUser, setRefreshKey } = useApp();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
   // =============================================================================
   // State: feed data (posts, stories, suggestions, loading/error)
   // =============================================================================
@@ -639,41 +644,10 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               </article>
             ))
           ) : (
-            /* Empty state: 3 skeleton posts */
-            renderPlaceholder(3).map((_, index) => (
-              <article key={index} className="post">
-                <div className="post__header">
-                  <div className="post__user-info">
-                    <div className="post__avatar-placeholder"></div>
-                    <div className="post__user-meta">
-                      <div className="post__username-placeholder"></div>
-                      <div className="post__location-placeholder"></div>
-                    </div>
-                  </div>
-                  <button className="post__more-btn">
-                    <MoreHorizontal size={24} />
-                  </button>
-                </div>
-                <div className="post__media">
-                  <div className="post__image-placeholder"></div>
-                </div>
-                <div className="post__actions">
-                  <div className="post__actions-left">
-                    <button className="post__action-btn"><Heart size={24} /></button>
-                    <button className="post__action-btn"><MessageCircle size={24} /></button>
-                    <button className="post__action-btn"><Send size={24} /></button>
-                  </div>
-                  <button className="post__action-btn"><Bookmark size={24} /></button>
-                </div>
-                <div className="post__content">
-                  <div className="post__likes-placeholder"></div>
-                  <div className="post__caption-placeholder">
-                    <div className="post__caption-line"></div>
-                    <div className="post__caption-line post__caption-line--short"></div>
-                  </div>
-                </div>
-              </article>
-            ))
+            /* Empty state: no posts (follow friends to see feed) */
+            <div className="feed-empty">
+              <p className="feed-empty__text">친구를 팔로우하고 피드를 띄워보세요!</p>
+            </div>
           )}
         </div>
       </div>
@@ -703,7 +677,13 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                 )}
               </div>
             </div>
-            <button className="h-sidebar__btn">Switch</button>
+            <button
+              type="button"
+              className="h-sidebar__btn"
+              onClick={() => setShowLoginModal(true)}
+            >
+              Switch
+            </button>
           </div>
 
           {/* Suggestions header */}
@@ -846,6 +826,18 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
             </div>
           </div>
         </div>
+      )}
+
+      {/* ========== Modal: Switch account (login) ========== */}
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onLogin={(user) => {
+            setCurrentUser(user);
+            setRefreshKey((prev) => prev + 1);
+            setShowLoginModal(false);
+          }}
+        />
       )}
 
       {/* ========== Modal: story (progress bar, header, image, prev/next nav) ========== */}

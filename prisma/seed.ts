@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+/** PostgreSQL용 시드: 트랜잭션으로 원자 실행, 실패 시 전체 롤백 */
+
 // 샘플 이미지 URL들 (Unsplash)
 const sampleImages = {
   avatars: [
@@ -75,32 +77,30 @@ const commentTexts = [
   '최고 ❤️',
 ];
 
-async function main() {
-  console.log('🌱 시드 데이터 생성 시작...');
-
-  // 기존 데이터 삭제 (순서 중요 - 외래 키 관계 고려)
+async function runSeed(
+  tx: Omit<
+    PrismaClient,
+    '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+  >
+) {
+  // 기존 데이터 삭제 (PostgreSQL FK 순서: 자식 → 부모)
   console.log('🗑️ 기존 데이터 삭제 중...');
-  await prisma.notification.deleteMany();
-  await prisma.message.deleteMany();
-  await prisma.participant.deleteMany();
-  await prisma.conversation.deleteMany();
-  await prisma.highlightStory.deleteMany();
-  await prisma.highlight.deleteMany();
-  await prisma.storyView.deleteMany();
-  await prisma.story.deleteMany();
-  await prisma.savedPost.deleteMany();
-  await prisma.commentLike.deleteMany();
-  await prisma.comment.deleteMany();
-  await prisma.like.deleteMany();
-  await prisma.post.deleteMany();
-  await prisma.follow.deleteMany();
-  // sessions 테이블이 있을 때만 삭제 (마이그레이션 전 DB에서는 테이블이 없을 수 있음)
-  try {
-    await prisma.session.deleteMany();
-  } catch {
-    // 테이블이 없으면 무시
-  }
-  await prisma.user.deleteMany();
+  await tx.notification.deleteMany();
+  await tx.message.deleteMany();
+  await tx.participant.deleteMany();
+  await tx.conversation.deleteMany();
+  await tx.highlightStory.deleteMany();
+  await tx.highlight.deleteMany();
+  await tx.storyView.deleteMany();
+  await tx.story.deleteMany();
+  await tx.savedPost.deleteMany();
+  await tx.commentLike.deleteMany();
+  await tx.comment.deleteMany();
+  await tx.like.deleteMany();
+  await tx.post.deleteMany();
+  await tx.follow.deleteMany();
+  await tx.session.deleteMany();
+  await tx.user.deleteMany();
 
   // 비밀번호 해시
   const hashedPassword = await bcrypt.hash('test', 10);
@@ -110,7 +110,7 @@ async function main() {
   // ============================================================================
   console.log('👤 사용자 생성 중...');
 
-  const testUser = await prisma.user.create({
+  const testUser = await tx.user.create({
     data: {
       email: 'test@example.com',
       username: 'test',
@@ -124,7 +124,7 @@ async function main() {
   });
 
   const friends = await Promise.all([
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'minjae@example.com',
         username: 'minjae_kim',
@@ -135,7 +135,7 @@ async function main() {
         isVerified: true,
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'soyeon@example.com',
         username: 'soyeon_park',
@@ -145,7 +145,7 @@ async function main() {
         bio: '일상을 기록합니다 📝',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'jihoon@example.com',
         username: 'jihoon_lee',
@@ -156,7 +156,7 @@ async function main() {
         isVerified: true,
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'yuna@example.com',
         username: 'yuna_choi',
@@ -166,7 +166,7 @@ async function main() {
         bio: '푸드 블로거 🍜 맛집 탐방 중',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'hyunwoo@example.com',
         username: 'hyunwoo_jung',
@@ -180,7 +180,7 @@ async function main() {
 
   // 추천용 유저들 생성 (팔로우하지 않은 유저들) - Explore 페이지용으로 15명 생성
   const suggestedUsers = await Promise.all([
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested1@example.com',
         username: 'suggested_user_1',
@@ -190,7 +190,7 @@ async function main() {
         bio: '추천 계정입니다 📸',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested2@example.com',
         username: 'suggested_user_2',
@@ -200,7 +200,7 @@ async function main() {
         bio: '일상을 공유합니다 ✨',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested3@example.com',
         username: 'suggested_user_3',
@@ -210,7 +210,7 @@ async function main() {
         bio: '여행을 좋아해요 🌴',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested4@example.com',
         username: 'suggested_user_4',
@@ -220,7 +220,7 @@ async function main() {
         bio: '맛집 탐방 중 🍜',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested5@example.com',
         username: 'suggested_user_5',
@@ -230,7 +230,7 @@ async function main() {
         bio: '운동하는 개발자 💪',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested6@example.com',
         username: 'suggested_user_6',
@@ -240,7 +240,7 @@ async function main() {
         bio: '음악을 사랑해요 🎵',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested7@example.com',
         username: 'suggested_user_7',
@@ -250,7 +250,7 @@ async function main() {
         bio: '책 읽는 것을 좋아해요 📚',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested8@example.com',
         username: 'suggested_user_8',
@@ -260,7 +260,7 @@ async function main() {
         bio: '요리를 배우는 중 🍳',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested9@example.com',
         username: 'suggested_user_9',
@@ -270,7 +270,7 @@ async function main() {
         bio: '산책을 즐겨요 🚶',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested10@example.com',
         username: 'suggested_user_10',
@@ -280,7 +280,7 @@ async function main() {
         bio: '영화 감상 중 🎬',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested11@example.com',
         username: 'suggested_user_11',
@@ -290,7 +290,7 @@ async function main() {
         bio: '그림 그리는 중 🎨',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested12@example.com',
         username: 'suggested_user_12',
@@ -300,7 +300,7 @@ async function main() {
         bio: '커피 애호가 ☕',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested13@example.com',
         username: 'suggested_user_13',
@@ -310,7 +310,7 @@ async function main() {
         bio: '자전거 타는 것을 좋아해요 🚴',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested14@example.com',
         username: 'suggested_user_14',
@@ -320,7 +320,7 @@ async function main() {
         bio: '반려동물과 함께 🐕',
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         email: 'suggested15@example.com',
         username: 'suggested_user_15',
@@ -341,7 +341,7 @@ async function main() {
 
   // test가 모든 친구를 팔로우
   for (const friend of friends) {
-    await prisma.follow.create({
+    await tx.follow.create({
       data: {
         followerId: testUser.id,
         followingId: friend.id,
@@ -350,24 +350,24 @@ async function main() {
   }
 
   // 일부 친구들이 test를 팔로우백
-  await prisma.follow.create({
+  await tx.follow.create({
     data: { followerId: friends[0].id, followingId: testUser.id },
   });
-  await prisma.follow.create({
+  await tx.follow.create({
     data: { followerId: friends[1].id, followingId: testUser.id },
   });
-  await prisma.follow.create({
+  await tx.follow.create({
     data: { followerId: friends[3].id, followingId: testUser.id },
   });
 
   // 친구들끼리 팔로우
-  await prisma.follow.create({
+  await tx.follow.create({
     data: { followerId: friends[0].id, followingId: friends[1].id },
   });
-  await prisma.follow.create({
+  await tx.follow.create({
     data: { followerId: friends[2].id, followingId: friends[0].id },
   });
-  await prisma.follow.create({
+  await tx.follow.create({
     data: { followerId: friends[3].id, followingId: friends[4].id },
   });
 
@@ -384,7 +384,7 @@ async function main() {
 
   // test 유저의 게시물 5개 생성
   for (let i = 0; i < 5; i++) {
-    const post = await prisma.post.create({
+    const post = await tx.post.create({
       data: {
         userId: testUser.id,
         imageUrl: sampleImages.posts[postImageIndex % sampleImages.posts.length],
@@ -402,7 +402,7 @@ async function main() {
   for (const friend of friends) {
     // 각 친구당 3개의 게시물
     for (let i = 0; i < 3; i++) {
-      const post = await prisma.post.create({
+      const post = await tx.post.create({
         data: {
           userId: friend.id,
           imageUrl: sampleImages.posts[postImageIndex % sampleImages.posts.length],
@@ -420,7 +420,7 @@ async function main() {
   // 추천 유저들의 게시물 생성 (각 유저당 2개씩 - Explore 페이지에 충분한 포스트 제공)
   for (const suggestedUser of suggestedUsers) {
     for (let i = 0; i < 2; i++) {
-      const post = await prisma.post.create({
+      const post = await tx.post.create({
         data: {
           userId: suggestedUser.id,
           imageUrl: sampleImages.posts[postImageIndex % sampleImages.posts.length],
@@ -448,7 +448,7 @@ async function main() {
   let storyImageIndex = 0;
 
   // test 유저 스토리 1개 (하이라이트용)
-  const testStory = await prisma.story.create({
+  const testStory = await tx.story.create({
     data: {
       userId: testUser.id,
       imageUrl: sampleImages.stories[storyImageIndex % sampleImages.stories.length],
@@ -462,7 +462,7 @@ async function main() {
     // 각 친구당 1~2개의 스토리
     const storyCount = Math.random() > 0.5 ? 2 : 1;
     for (let i = 0; i < storyCount; i++) {
-      await prisma.story.create({
+      await tx.story.create({
         data: {
           userId: friend.id,
           imageUrl: sampleImages.stories[storyImageIndex % sampleImages.stories.length],
@@ -476,7 +476,7 @@ async function main() {
 
   // 추천 유저들의 스토리 생성 (각 유저당 1개씩)
   for (const suggestedUser of suggestedUsers) {
-    await prisma.story.create({
+    await tx.story.create({
       data: {
         userId: suggestedUser.id,
         imageUrl: sampleImages.stories[storyImageIndex % sampleImages.stories.length],
@@ -497,7 +497,7 @@ async function main() {
   for (const post of posts) {
     // test 유저가 일부 게시물에 좋아요
     if (Math.random() > 0.3) {
-      await prisma.like.create({
+      await tx.like.create({
         data: {
           postId: post.id,
           userId: testUser.id,
@@ -508,7 +508,7 @@ async function main() {
     // 친구들도 서로 좋아요
     for (const friend of friends) {
       if (friend.id !== post.userId && Math.random() > 0.5) {
-        await prisma.like.create({
+        await tx.like.create({
           data: {
             postId: post.id,
             userId: friend.id,
@@ -536,7 +536,7 @@ async function main() {
         : friends[Math.floor(Math.random() * friends.length)];
       
       if (commenter.id !== post.userId) {
-        await prisma.comment.create({
+        await tx.comment.create({
           data: {
             postId: post.id,
             userId: commenter.id,
@@ -558,7 +558,7 @@ async function main() {
 
   // 팔로우 알림
   for (let i = 0; i < 3; i++) {
-    await prisma.notification.create({
+    await tx.notification.create({
       data: {
         type: 'follow',
         actorId: friends[i].id,
@@ -573,7 +573,7 @@ async function main() {
   for (let i = 0; i < 5; i++) {
     const randomFriend = friends[Math.floor(Math.random() * friends.length)];
     const randomPost = posts[Math.floor(Math.random() * posts.length)];
-    await prisma.notification.create({
+    await tx.notification.create({
       data: {
         type: 'like',
         actorId: randomFriend.id,
@@ -589,7 +589,7 @@ async function main() {
   for (let i = 0; i < 3; i++) {
     const randomFriend = friends[Math.floor(Math.random() * friends.length)];
     const randomPost = posts[Math.floor(Math.random() * posts.length)];
-    await prisma.notification.create({
+    await tx.notification.create({
       data: {
         type: 'comment',
         actorId: randomFriend.id,
@@ -657,7 +657,7 @@ async function main() {
     const friend = friends[i];
     const messages = conversationMessages[i] || [];
 
-    const conversation = await prisma.conversation.create({
+    const conversation = await tx.conversation.create({
       data: {
         participants: {
           create: [
@@ -677,7 +677,7 @@ async function main() {
       createdAt: new Date(Date.now() - msg.hoursAgo * 60 * 60 * 1000),
     }));
 
-    await prisma.message.createMany({
+    await tx.message.createMany({
       data: messageData,
     });
   }
@@ -690,14 +690,14 @@ async function main() {
   console.log('⭐ 하이라이트 생성 중...');
 
   // test 유저 하이라이트 1개
-  const testHighlight = await prisma.highlight.create({
+  const testHighlight = await tx.highlight.create({
     data: {
       userId: testUser.id,
       name: '일상 ✨',
       coverImage: testStory.imageUrl,
     },
   });
-  await prisma.highlightStory.create({
+  await tx.highlightStory.create({
     data: {
       highlightId: testHighlight.id,
       storyId: testStory.id,
@@ -705,12 +705,12 @@ async function main() {
   });
 
   // 첫 번째 친구의 하이라이트
-  const friendStories = await prisma.story.findMany({
+  const friendStories = await tx.story.findMany({
     where: { userId: friends[0].id },
   });
 
   if (friendStories.length > 0) {
-    const friendHighlight = await prisma.highlight.create({
+    const friendHighlight = await tx.highlight.create({
       data: {
         userId: friends[0].id,
         name: '여행 🌴',
@@ -719,7 +719,7 @@ async function main() {
     });
 
     for (const story of friendStories) {
-      await prisma.highlightStory.create({
+      await tx.highlightStory.create({
         data: {
           highlightId: friendHighlight.id,
           storyId: story.id,
@@ -745,8 +745,16 @@ async function main() {
   console.log('📱 스토리: 활성화됨 (24시간 유효)');
   console.log('💬 댓글 & 좋아요: 생성됨');
   console.log('🔔 알림: 생성됨');
-  console.log('✉️ DM 대화: 2개');
+  console.log(`✉️ DM 대화: ${friends.length}개`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+}
+
+async function main() {
+  console.log('🌱 시드 데이터 생성 시작 (PostgreSQL)...');
+  await prisma.$transaction(
+    async (tx) => runSeed(tx),
+    { timeout: 60_000 }
+  );
 }
 
 main()

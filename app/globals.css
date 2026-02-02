@@ -464,6 +464,8 @@ button {
 
 .feed-container { max-width: 821px; width: 100%; display: flex; justify-content: center; padding: 20px 0; gap: 32px; }
 .feed-main { width: 100%; max-width: var(--feed-width); }
+.feed-empty { display: flex; align-items: center; justify-content: center; min-height: 280px; padding: 48px 24px; text-align: center; }
+.feed-empty__text { font-size: 22px; font-weight: 600; color: var(--ig-primary-text); margin: 0; line-height: 1.4; }
 .feed-sidebar { display: block; width: var(--right-sidebar-width); flex-shrink: 0; }
 @media (max-width: 1159px) { .feed-sidebar { display: none; } .feed-container { max-width: var(--feed-width); } }
 
@@ -2299,6 +2301,107 @@ button.profile-highlight:hover .profile-highlight-circle--new {
   100% {
     transform: scale(1);
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* 13b. LOGIN MODAL (Switch account)                                           */
+/* -------------------------------------------------------------------------- */
+.login-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-modal {
+  background-color: var(--ig-primary-background);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: shareModalSlideUp 0.2s ease-out;
+}
+
+.login-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ig-separator);
+}
+
+.login-modal__title {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ig-primary-text);
+}
+
+.login-modal__close {
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ig-primary-text);
+  transition: opacity 0.2s;
+}
+
+.login-modal__close:hover {
+  opacity: 0.6;
+}
+
+.login-modal__card {
+  padding: 24px 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-modal__logo {
+  margin: 0 0 24px;
+  font-size: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.login-modal__logo-icon {
+  flex-shrink: 0;
+  color: var(--ig-primary-text);
+}
+.login-modal__logo-text {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--ig-primary-text);
+  letter-spacing: -0.5px;
+}
+
+.login-modal__error {
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--ig-error, #ed4956);
+  text-align: center;
+  background-color: rgba(237, 73, 86, 0.08);
+  border-radius: 8px;
+}
+
+.login-modal__card .login-form {
+  width: 100%;
+  gap: 6px;
+}
+
+.login-modal__card .login-submit-btn {
+  margin-top: 12px;
 }
 
 /* -------------------------------------------------------------------------- */

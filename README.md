@@ -30,7 +30,12 @@ View your app in AI Studio: https://ai.studio/apps/drive/1lO7Dr_F0LhGjBBiExXy_Vo
    ```bash
    npx prisma migrate dev --name init
    ```
-4. Run the app:
+4. (선택) PostgreSQL에 시드 데이터 넣기:
+   ```bash
+   npx prisma db seed
+   ```
+   - 기존 데이터를 삭제한 뒤 테스트 유저·게시물·스토리·DM 등 샘플 데이터를 트랜잭션으로 한 번에 넣습니다. 실패 시 전체 롤백됩니다.
+5. Run the app:
    ```bash
    npm run dev
    ```
