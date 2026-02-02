@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Post, Story, Suggestion, AuthUser, User } from '../types';
 import { postService, storyService, userService, messageService } from '../services/dataService';
@@ -270,11 +271,8 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     if (!post.isLiked) {
       await handleLike(post.id, false);
     } else {
-      // Show animation even if already liked
-      setLikeAnimations(prev => ({ ...prev, [post.id]: true }));
-      setTimeout(() => {
-        setLikeAnimations(prev => ({ ...prev, [post.id]: false }));
-      }, 1000);
+      // 이미 좋아요 상태면 더블클릭 시 좋아요 해제
+      await handleLike(post.id, true);
     }
   }, [handleLike]);
 
@@ -394,9 +392,12 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
   // =============================================================================
   const handleUnfollowPostAuthor = useCallback(async (post: Post) => {
     if (!currentUser?.id || !post.user?.id || post.user.id === currentUser.id) return;
+    const unfollowUserId = post.user.id;
     setMoreMenuPostId(null);
     try {
-      await userService.unfollowUser(post.user.id, currentUser.id);
+      await userService.unfollowUser(unfollowUserId, currentUser.id);
+      // 피드에서 해당 유저의 게시물 제거 (팔로우 취소 시 더 이상 보이지 않음)
+      setPosts(prev => prev.filter(p => p.user?.id !== unfollowUserId));
     } catch (err) {
       console.error('Error unfollowing user:', err);
     }
@@ -496,7 +497,11 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
               <article key={post.id} className="post">
                 {/* Post header: avatar, username, location, more */}
                 <div className="post__header">
-                  <div className="post__user-info">
+                  <Link
+                    href={`/profile/${post.user.id}`}
+                    className="post__user-info"
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
                     {post.user.avatar ? (
                       <img src={post.user.avatar} alt={post.user.username} className="post__avatar" />
                     ) : (
@@ -506,7 +511,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                       <span className="post__username">{post.user.username}</span>
                       {post.location && <span className="post__location">{post.location}</span>}
                     </div>
-                  </div>
+                  </Link>
                   <div
                     className="post-more-wrap"
                     ref={moreMenuPostId === post.id ? moreMenuRef : undefined}

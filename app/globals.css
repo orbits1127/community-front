@@ -467,7 +467,8 @@ button {
 .feed-sidebar { display: block; width: var(--right-sidebar-width); flex-shrink: 0; }
 @media (max-width: 1159px) { .feed-sidebar { display: none; } .feed-container { max-width: var(--feed-width); } }
 
-.sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-width-narrow); border-right: 1px solid var(--ig-separator); background: var(--ig-primary-background); padding: 8px 12px 20px; display: flex; flex-direction: column; z-index: 1000; transition: width var(--transition-standard), overflow 0s; overflow: hidden; }
+.sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-width-narrow); border-right: 1px solid var(--ig-separator); background: var(--ig-primary-background); color: var(--ig-primary-text); padding: 8px 12px 20px; display: flex; flex-direction: column; z-index: 1000; transition: width var(--transition-standard), overflow 0s; overflow: hidden; }
+.sidebar a { text-decoration: none; color: inherit; }
 @media (min-width: 768px) { .sidebar:hover { width: var(--sidebar-width-wide); box-shadow: 4px 0 24px rgba(0,0,0,0.05); overflow: visible; } }
 .sidebar__logo-area { padding: 25px 12px 35px; height: 92px; display: flex; align-items: center; justify-content: center; transition: justify-content var(--transition-standard); }
 .sidebar__logo-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: inherit; text-decoration: none; }
@@ -479,7 +480,7 @@ button {
 .sidebar:hover .sidebar__logo-icon { display: none; }
 .sidebar__nav { flex: 1; display: flex; flex-direction: column; align-items: center; }
 .sidebar:hover .sidebar__nav { align-items: flex-start; }
-.sidebar__nav .sidebar__item { color: #000; }
+.sidebar__nav .sidebar__item { color: var(--ig-primary-text); }
 .sidebar__item { width: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px; margin: 4px 0; border-radius: 8px; transition: background var(--transition-standard), transform 0.1s ease; cursor: pointer; }
 .sidebar:hover .sidebar__item { justify-content: flex-start; }
 .sidebar__item:hover { background-color: var(--ig-hover-overlay); }
@@ -517,9 +518,24 @@ button {
 .story-tray { display: flex; gap: 16px; overflow-x: auto; padding: 16px 0 24px; scrollbar-width: none; }
 .story-tray::-webkit-scrollbar { display: none; }
 .story-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; cursor: pointer; }
-.story-item__ring { padding: 2px; border-radius: 50%; background: var(--ig-story-gradient); }
-.story-item__inner { padding: 2px; background: white; border-radius: 50%; }
-.story-item__img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
+.story-item__ring { padding: 2px; border-radius: 50%; background: var(--ig-story-gradient); display: inline-block; }
+.story-item__inner {
+  width: 60px;
+  height: 60px;
+  padding: 2px;
+  box-sizing: border-box;
+  background: white;
+  border-radius: 50%;
+  overflow: hidden;
+  display: block;
+}
+.story-item__img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+}
 .story-item__username { font-size: 12px; max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ig-secondary-text); }
 
 button.story-item.story-item--add {
@@ -542,8 +558,9 @@ button.story-item.story-item--add:disabled {
 
 .story-item__add-icon {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
+  bottom: 0;
+  right: 0;
+  z-index: 2;
   width: 22px;
   height: 22px;
   border-radius: 50%;

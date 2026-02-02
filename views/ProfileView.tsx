@@ -53,6 +53,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   const [creatingHighlight, setCreatingHighlight] = useState(false);
   const [createHighlightError, setCreateHighlightError] = useState<string | null>(null);
 
+  // State: unfollow confirmation modal
+  const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
+
   // State: edit profile modal
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editFullName, setEditFullName] = useState('');
@@ -143,29 +146,38 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   }, [activeTab, userId, isOwnProfile]);
 
   // =============================================================================
-  // Follow: follow/unfollow toggle
+  // Follow: follow / unfollow (unfollow 시 확인 모달)
   // =============================================================================
   const handleFollowToggle = async () => {
-    if (!profile || !userId) return;
-
+    if (!profile || !currentUser?.id) return;
+    if (profile.isFollowing) {
+      setShowUnfollowConfirm(true);
+      return;
+    }
     try {
-      if (profile.isFollowing) {
-        await userService.unfollowUser(profile.id, userId);
-        setProfile(prev =>
-          prev
-            ? { ...prev, isFollowing: false, followersCount: prev.followersCount - 1 }
-            : null
-        );
-      } else {
-        await userService.followUser(profile.id, userId);
-        setProfile(prev =>
-          prev
-            ? { ...prev, isFollowing: true, followersCount: prev.followersCount + 1 }
-            : null
-        );
-      }
+      await userService.followUser(profile.id, currentUser.id);
+      setProfile(prev =>
+        prev
+          ? { ...prev, isFollowing: true, followersCount: prev.followersCount + 1 }
+          : null
+      );
     } catch (err) {
-      console.error('Error toggling follow:', err);
+      console.error('Error following:', err);
+    }
+  };
+
+  const handleUnfollowConfirm = async () => {
+    if (!profile || !currentUser?.id) return;
+    try {
+      await userService.unfollowUser(profile.id, currentUser.id);
+      setProfile(prev =>
+        prev
+          ? { ...prev, isFollowing: false, followersCount: prev.followersCount - 1 }
+          : null
+      );
+      setShowUnfollowConfirm(false);
+    } catch (err) {
+      console.error('Error unfollowing:', err);
     }
   };
 
@@ -406,7 +418,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
                       className={`profile-btn ${profile?.isFollowing ? 'profile-btn--edit' : 'profile-btn--follow'}`}
                       onClick={handleFollowToggle}
                     >
-                      {profile?.isFollowing ? 'Following' : 'Follow'}
+                      {profile?.isFollowing ? '팔로우 취소' : 'Follow'}
                     </button>
                     <button className="profile-btn profile-btn--edit">Message</button>
                   </>
@@ -695,6 +707,76 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
           )}
         </div>
       </div>
+
+      {/* ========== Modal: 팔로우 취소 확인 ========== */}
+      {showUnfollowConfirm && (
+        <div
+          className="story-modal-overlay"
+          onClick={() => setShowUnfollowConfirm(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            zIndex: 9998,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'var(--ig-primary-background)',
+              borderRadius: '12px',
+              maxWidth: '400px',
+              width: '90%',
+              padding: '24px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            }}
+          >
+            <p style={{ fontSize: '16px', textAlign: 'center', marginBottom: '20px', color: 'var(--ig-primary-text)' }}>
+              팔로우를 취소하시겠습니까?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowUnfollowConfirm(false)}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: 'var(--ig-primary-text)',
+                  backgroundColor: 'var(--ig-secondary-background)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleUnfollowConfirm}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#fff',
+                  backgroundColor: '#ed4956',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========== Modal: edit profile (name, username, bio, website, avatar) ========== */}
       {showEditProfileModal && (
