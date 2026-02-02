@@ -14,18 +14,36 @@
   --ig-hover-overlay: rgba(0, 0, 0, 0.05);
   --ig-active-overlay: rgba(0, 0, 0, 0.1);
   --ig-error: #ff3040;
-  
+  --ig-primary-bg: #ffffff;
+  --ig-secondary-bg: #fafafa;
+
   --ig-story-gradient: linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7);
-  
+
   --sidebar-width-narrow: 72px;
   --sidebar-width-wide: 240px;
   --feed-width: 470px;
   --right-sidebar-width: 319px;
   --explore-max-width: 935px;
   --messages-sidebar-width: 397px;
-  
+
   --font-system: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --transition-standard: 0.2s ease-in-out;
+}
+
+[data-theme="dark"] {
+  --ig-primary-background: #000000;
+  --ig-secondary-background: #121212;
+  --ig-primary-text: #f5f5f5;
+  --ig-secondary-text: #a8a8a8;
+  --ig-link: #0095f6;
+  --ig-link-hover: #4db8ff;
+  --ig-separator: #262626;
+  --ig-elevated-separator: #262626;
+  --ig-hover-overlay: rgba(255, 255, 255, 0.08);
+  --ig-active-overlay: rgba(255, 255, 255, 0.15);
+  --ig-error: #ff3040;
+  --ig-primary-bg: #000000;
+  --ig-secondary-bg: #121212;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -608,6 +626,45 @@ button.story-item.story-item--add:disabled {
 .modal-more-btn {
   padding: 8px;
   cursor: pointer;
+}
+
+.post-more-wrap {
+  position: relative;
+}
+
+.post-more-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 180px;
+  background: var(--ig-primary-bg);
+  border: 1px solid var(--ig-secondary);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.post-more-item {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--ig-primary-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.post-more-item:hover {
+  background: var(--ig-secondary-bg);
+}
+
+.post-more-item--danger:hover {
+  color: var(--ig-error);
 }
 
 .modal-comments-section {

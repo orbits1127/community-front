@@ -31,6 +31,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
           post={selectedPost}
           currentUser={currentUser}
           onClose={() => setSelectedPost(null)}
+          onPostDeleted={() => setSelectedPost(null)}
         />
       )}
       {showCreateModal && (

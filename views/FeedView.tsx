@@ -335,21 +335,15 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     );
   }, []);
 
-  // Send shared post
+  // Send shared post (uses messageService aligned with /api/messages)
   const handleSendShare = useCallback(async () => {
-    if (!shareModalPost || selectedShareUsers.length === 0) return;
-    
+    if (!shareModalPost || selectedShareUsers.length === 0 || !currentUser?.id) return;
+
     setShareSending(true);
     try {
-      // Create conversation and send message for each selected user
+      const content = `Check out this post: ${shareModalPost.caption || 'Shared post'}\n[Post ID: ${shareModalPost.id}]`;
       for (const userId of selectedShareUsers) {
-        const convRes = await messageService.createConversation([userId]);
-        if (convRes.success && convRes.data) {
-          await messageService.sendMessage(
-            convRes.data.id,
-            `Check out this post: ${shareModalPost.caption || 'Shared post'}\n[Post ID: ${shareModalPost.id}]`
-          );
-        }
+        await messageService.sendMessage(currentUser.id, userId, content);
       }
       setShareSuccess(true);
       setTimeout(() => {
@@ -361,7 +355,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
     } finally {
       setShareSending(false);
     }
-  }, [shareModalPost, selectedShareUsers]);
+  }, [shareModalPost, selectedShareUsers, currentUser?.id]);
 
   // =============================================================================
   // Suggestions: follow button (remove from list after follow)

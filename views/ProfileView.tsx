@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Grid, Film, Bookmark, UserSquare2, Settings, Plus, Heart, MessageCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { UserProfile, Post, Highlight, Story, AuthUser } from '../types';
 import { userService, postService, highlightService, storyService } from '../services/dataService';
@@ -14,9 +15,13 @@ interface ProfileViewProps {
   userId?: string;
   isOwnProfile?: boolean;
   currentUser?: AuthUser | null;
+  onProfileUpdated?: (user: { id: string; username: string; fullName: string; avatar: string | null; bio?: string | null; website?: string | null }) => void;
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, currentUser }) => {
+const VALID_TAB_IDS = ['posts', 'reels', 'saved', 'tagged'] as const;
+
+const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, currentUser, onProfileUpdated }) => {
+  const searchParams = useSearchParams();
   // =============================================================================
   // State: profile data (profile, posts, saved posts, highlights, tab, loading/error)
   // =============================================================================
@@ -47,6 +52,25 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   const [loadingMyStories, setLoadingMyStories] = useState(false);
   const [creatingHighlight, setCreatingHighlight] = useState(false);
   const [createHighlightError, setCreateHighlightError] = useState<string | null>(null);
+
+  // State: edit profile modal
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editFullName, setEditFullName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editWebsite, setEditWebsite] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const editAvatarFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync activeTab with URL ?tab= (e.g. /profile?tab=saved from sidebar Saved)
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && VALID_TAB_IDS.includes(tab as typeof VALID_TAB_IDS[number])) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // =============================================================================
   // Profile data load (profile, posts, highlights)
@@ -171,6 +195,59 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
     }
   }, [userId]);
 
+  const handleOpenEditProfile = useCallback(() => {
+    if (!profile) return;
+    setEditFullName(profile.fullName ?? '');
+    setEditUsername(profile.username ?? '');
+    setEditBio(profile.bio ?? '');
+    setEditWebsite(profile.website ?? '');
+    setEditAvatar(profile.avatar ?? '');
+    setEditError(null);
+    setShowEditProfileModal(true);
+  }, [profile]);
+
+  const handleEditAvatarFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (typeof result === 'string') setEditAvatar(result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }, []);
+
+  const handleSubmitEditProfile = useCallback(async () => {
+    if (!userId || !editUsername.trim()) {
+      setEditError('사용자 이름을 입력해 주세요.');
+      return;
+    }
+    setEditSubmitting(true);
+    setEditError(null);
+    try {
+      const res = await userService.updateProfile(userId, {
+        fullName: editFullName.trim(),
+        username: editUsername.trim(),
+        bio: editBio.trim() || undefined,
+        website: editWebsite.trim() || undefined,
+        avatar: editAvatar.trim() || undefined,
+      });
+      if (res.success && res.data) {
+        setProfile(prev => prev ? { ...prev, ...res.data } : null);
+        onProfileUpdated?.(res.data);
+        setShowEditProfileModal(false);
+      } else {
+        setEditError(res.error ?? '프로필 수정에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setEditError('프로필 수정 중 오류가 발생했습니다.');
+    } finally {
+      setEditSubmitting(false);
+    }
+  }, [userId, editFullName, editUsername, editBio, editWebsite, editAvatar, onProfileUpdated]);
+
   const toggleStoryForHighlight = (storyId: string) => {
     setSelectedStoryIds(prev =>
       prev.includes(storyId) ? prev.filter(id => id !== storyId) : [...prev, storyId]
@@ -289,9 +366,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
 
   const filteredTabs = tabs.filter(tab => !tab.showOnlyOwn || isOwnProfile);
 
-  // UI helper: skeleton count
-  const renderPlaceholder = (count: number) => Array.from({ length: count });
-
   return (
     <div className="profile-page">
       <div className="profile-container">
@@ -318,7 +392,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               <div className="profile-actions">
                 {isOwnProfile ? (
                   <>
-                    <button className="profile-btn profile-btn--edit">Edit profile</button>
+                    <button type="button" className="profile-btn profile-btn--edit" onClick={handleOpenEditProfile}>
+                      Edit profile
+                    </button>
                     <button className="profile-btn profile-btn--archive">View archive</button>
                     <button className="profile-btn-icon">
                       <Settings size={24} />
@@ -399,48 +475,41 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
           </div>
         </div>
 
-        {/* ---------- Section: highlights (new + list, click opens story modal) ---------- */}
-        <div className="profile-highlights">
-          {isOwnProfile && (
-            <button
-              type="button"
-              className="profile-highlight profile-highlight--new"
-              onClick={handleOpenCreateHighlight}
-              aria-label="새 하이라이트 만들기"
-            >
-              <div className="profile-highlight-circle profile-highlight-circle--new">
-                <Plus size={24} />
-              </div>
-              <span className="profile-highlight-name">New</span>
-            </button>
-          )}
-          {highlights.length > 0
-            ? highlights.map(highlight => (
-                <div 
-                  key={highlight.id} 
-                  className="profile-highlight"
-                  onClick={() => handleHighlightClick(highlight)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="profile-highlight-circle">
-                    {highlight.coverImage ? (
-                      <img src={highlight.coverImage} alt={highlight.name} />
-                    ) : (
-                      <div className="profile-highlight-placeholder"></div>
-                    )}
-                  </div>
-                  <span className="profile-highlight-name">{highlight.name}</span>
+        {/* ---------- Section: highlights (new + list, click opens story modal) — 숨김: 본인도 하이라이트 없고, 타인은 하이라이트 없을 때 ---------- */}
+        {(isOwnProfile || highlights.length > 0) && (
+          <div className="profile-highlights">
+            {isOwnProfile && (
+              <button
+                type="button"
+                className="profile-highlight profile-highlight--new"
+                onClick={handleOpenCreateHighlight}
+                aria-label="새 하이라이트 만들기"
+              >
+                <div className="profile-highlight-circle profile-highlight-circle--new">
+                  <Plus size={24} />
                 </div>
-              ))
-            : renderPlaceholder(4).map((_, index) => (
-                <div key={index} className="profile-highlight">
-                  <div className="profile-highlight-circle">
+                <span className="profile-highlight-name">New</span>
+              </button>
+            )}
+            {highlights.length > 0 && highlights.map(highlight => (
+              <div 
+                key={highlight.id} 
+                className="profile-highlight"
+                onClick={() => handleHighlightClick(highlight)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="profile-highlight-circle">
+                  {highlight.coverImage ? (
+                    <img src={highlight.coverImage} alt={highlight.name} />
+                  ) : (
                     <div className="profile-highlight-placeholder"></div>
-                  </div>
-                  <span className="profile-highlight-name">Highlight</span>
+                  )}
                 </div>
-              ))}
-        </div>
+                <span className="profile-highlight-name">{highlight.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ---------- Section: tabs (POSTS / REELS / SAVED / TAGGED) ---------- */}
         <div className="profile-tabs">
@@ -535,6 +604,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
                 저장된 게시물이 없습니다
               </div>
             )
+          ) : activeTab === 'reels' || activeTab === 'tagged' ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--ig-secondary-text)' }}>
+              저장된 게시물이 없습니다
+            </div>
           ) : loading ? (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--ig-secondary-text)' }}>
               Loading...
@@ -616,15 +689,215 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               </div>
             ))
           ) : (
-            /* Empty state: 9 skeletons */
-            renderPlaceholder(9).map((_, index) => (
-              <div key={index} className="profile-post">
-                <div className="profile-post-placeholder"></div>
-              </div>
-            ))
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 0', color: 'var(--ig-secondary-text)' }}>
+              저장된 게시물이 없습니다
+            </div>
           )}
         </div>
       </div>
+
+      {/* ========== Modal: edit profile (name, username, bio, website, avatar) ========== */}
+      {showEditProfileModal && (
+        <div
+          className="story-modal-overlay"
+          onClick={() => !editSubmitting && setShowEditProfileModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            zIndex: 9998,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'var(--ig-primary-background)',
+              borderRadius: '12px',
+              maxWidth: '400px',
+              width: '90%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            }}
+          >
+            <div style={{
+              padding: '16px 16px 12px',
+              borderBottom: '1px solid var(--ig-separator)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <button
+                type="button"
+                onClick={() => !editSubmitting && setShowEditProfileModal(false)}
+                style={{ padding: '4px', color: 'var(--ig-primary-text)' }}
+                aria-label="닫기"
+              >
+                <X size={24} />
+              </button>
+              <span style={{ fontWeight: 600, fontSize: '16px' }}>프로필 수정</span>
+              <button
+                type="button"
+                disabled={editSubmitting}
+                onClick={handleSubmitEditProfile}
+                style={{
+                  padding: '4px 8px',
+                  color: editSubmitting ? 'var(--ig-secondary-text)' : 'var(--ig-link)',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: editSubmitting ? 'wait' : 'pointer',
+                }}
+              >
+                {editSubmitting ? '저장 중…' : '저장'}
+              </button>
+            </div>
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {editError && (
+                <div style={{ color: 'var(--ig-error)', fontSize: '14px' }}>{editError}</div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '96px',
+                    height: '96px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    backgroundColor: 'var(--ig-secondary-bg)',
+                    flexShrink: 0,
+                  }}
+                >
+                  {editAvatar ? (
+                    <img
+                      src={editAvatar}
+                      alt="프로필 미리보기"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ig-secondary-text)' }}>
+                      <UserSquare2 size={40} />
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={editAvatarFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEditAvatarFileChange}
+                  style={{ display: 'none' }}
+                  aria-hidden
+                />
+                <button
+                  type="button"
+                  onClick={() => editAvatarFileInputRef.current?.click()}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: 'var(--ig-link)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  사진 올리기
+                </button>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--ig-primary-text)' }}>
+                  이름
+                </label>
+                <input
+                  type="text"
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  placeholder="이름"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid var(--ig-separator)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: 'var(--ig-primary-text)',
+                    backgroundColor: 'var(--ig-secondary-background)',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--ig-primary-text)' }}>
+                  사용자 이름
+                </label>
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  placeholder="username"
+                  autoComplete="username"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid var(--ig-separator)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: 'var(--ig-primary-text)',
+                    backgroundColor: 'var(--ig-secondary-background)',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--ig-primary-text)' }}>
+                  웹사이트
+                </label>
+                <input
+                  type="text"
+                  value={editWebsite}
+                  onChange={(e) => setEditWebsite(e.target.value)}
+                  placeholder="https://..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid var(--ig-separator)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: 'var(--ig-primary-text)',
+                    backgroundColor: 'var(--ig-secondary-background)',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--ig-primary-text)' }}>
+                  소개
+                </label>
+                <textarea
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder="소개"
+                  rows={3}
+                  maxLength={150}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid var(--ig-separator)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    color: 'var(--ig-primary-text)',
+                    backgroundColor: 'var(--ig-secondary-background)',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========== Modal: create highlight (name input, story selection, create) ========== */}
       {showCreateHighlightModal && (
@@ -997,17 +1270,19 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
           currentUser={currentUser}
           onClose={() => setSelectedPost(null)}
           onCommentAdded={(postId, newCommentsCount) => {
-            // Update the post in the posts array
             setPosts(prev => prev.map(p => 
               p.id === postId 
                 ? { ...p, commentsCount: newCommentsCount }
                 : p
             ));
-            // Also update selectedPost if it's the same post
             setSelectedPost(prev => prev && prev.id === postId
               ? { ...prev, commentsCount: newCommentsCount }
               : prev
             );
+          }}
+          onPostDeleted={(postId) => {
+            setSelectedPost(null);
+            setPosts(prev => prev.filter(p => p.id !== postId));
           }}
         />
       )}

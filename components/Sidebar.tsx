@@ -36,6 +36,8 @@ const navItems = [
   { id: 'profile', label: 'Profile', icon: User, href: '/profile' },
 ];
 
+const THEME_STORAGE_KEY = 'app-theme';
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -43,6 +45,16 @@ export default function Sidebar() {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(THEME_STORAGE_KEY) : null;
+    const dark = stored === 'dark';
+    setIsDarkMode(dark);
+    if (typeof document !== 'undefined') {
+      if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+      else document.documentElement.removeAttribute('data-theme');
+    }
+  }, []);
 
   const isActive = (item: (typeof navItems)[0]) => {
     if (item.id === 'home') return pathname === '/feed' || pathname === '/';
@@ -53,7 +65,7 @@ export default function Sidebar() {
   const moreMenuItems = [
     { id: 'settings', label: 'Settings', icon: <Settings size={18} />, href: '/settings' },
     { id: 'activity', label: 'Your activity', icon: <Activity size={18} />, href: null },
-    { id: 'saved', label: 'Saved', icon: <Bookmark size={18} />, href: '/profile' },
+    { id: 'saved', label: 'Saved', icon: <Bookmark size={18} />, href: '/profile?tab=saved' },
     { id: 'appearance', label: 'Switch appearance', icon: isDarkMode ? <Moon size={18} /> : <Sun size={18} />, hasToggle: true, href: null },
     { id: 'report', label: 'Report a problem', icon: <AlertCircle size={18} />, href: null },
     { id: 'separator1', type: 'separator' as const, icon: null, href: null },
@@ -74,7 +86,17 @@ export default function Sidebar() {
 
   const handleMoreMenuClick = (itemId: string, href: string | null) => {
     if (itemId === 'appearance') {
-      setIsDarkMode(!isDarkMode);
+      const next = !isDarkMode;
+      setIsDarkMode(next);
+      if (typeof document !== 'undefined') {
+        if (next) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem(THEME_STORAGE_KEY, 'light');
+        }
+      }
       setShowMoreMenu(false);
       return;
     }

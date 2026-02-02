@@ -41,40 +41,19 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   // =============================================================================
-  // Load conversations (API → format → store, auto-select first)
+  // Load conversations (service → store, auto-select first)
   // =============================================================================
   useEffect(() => {
-    const fetchConversations = async () => {
+    const loadConversations = async () => {
       if (!currentUser?.id) return;
-      
+
       setLoading(true);
       try {
-        const response = await fetch(`/api/messages?userId=${currentUser.id}`);
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-          // Transform API response to Conversation type
-          const formattedConversations: Conversation[] = data.data.map((conv: any) => ({
-            id: conv.id,
-            participants: conv.participants || [],
-            lastMessage: conv.lastMessage ? {
-              id: conv.lastMessage.id,
-              conversationId: conv.lastMessage.conversationId,
-              senderId: conv.lastMessage.senderId,
-              sender: conv.lastMessage.sender || conv.participants[0],
-              content: conv.lastMessage.content,
-              isRead: conv.lastMessage.isRead || false,
-              createdAt: conv.lastMessage.createdAt,
-            } : undefined,
-            unreadCount: 0, // TODO: Calculate unread count
-            updatedAt: conv.updatedAt,
-          }));
-          
-          setConversations(formattedConversations);
-          
-          // Auto-select first conversation
-          if (formattedConversations.length > 0 && !selectedConversation) {
-            setSelectedConversation(formattedConversations[0]);
+        const res = await messageService.getConversations(currentUser.id);
+        if (res.success && res.data) {
+          setConversations(res.data);
+          if (res.data.length > 0 && !selectedConversation) {
+            setSelectedConversation(res.data[0]);
           }
         }
       } catch (err) {
@@ -84,31 +63,18 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
       }
     };
 
-    fetchConversations();
+    loadConversations();
   }, [currentUser?.id]);
 
   // =============================================================================
-  // Load messages for selected conversation (API → format → store)
+  // Load messages for selected conversation (service → store)
   // =============================================================================
   const fetchMessages = useCallback(async (conversationId: string) => {
     setLoadingMessages(true);
     try {
-      const response = await fetch(`/api/messages/${conversationId}`);
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        // Transform API response to Message type
-        const formattedMessages: Message[] = data.data.map((msg: any) => ({
-          id: msg.id,
-          conversationId: msg.conversationId,
-          senderId: msg.senderId,
-          sender: msg.sender || { id: msg.senderId, username: 'unknown', avatar: '', fullName: 'Unknown' },
-          content: msg.content,
-          isRead: msg.isRead || false,
-          createdAt: msg.createdAt,
-        }));
-        
-        setMessages(formattedMessages);
+      const res = await messageService.getMessages(conversationId);
+      if (res.success && res.data) {
+        setMessages(res.data);
       }
     } catch (err) {
       console.error('Error loading messages:', err);
@@ -184,112 +150,46 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
     });
 
     try {
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderId: currentUser.id,
-          receiverId: otherParticipant.id,
-          content: textToSend,
-        }),
-      });
+      const res = await messageService.sendMessage(
+        currentUser.id,
+        otherParticipant.id,
+        textToSend
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to send message:', errorData);
-        // Remove optimistic message on error
+      if (!res.success || !res.data) {
+        console.error('Failed to send message:', res.error);
         setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
-        setMessageText(textToSend); // Restore text
-        alert(errorData.error || '메시지 전송에 실패했습니다.');
+        setMessageText(textToSend);
+        alert(res.error || '메시지 전송에 실패했습니다.');
         return;
       }
 
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        // Transform the new message from server
-        const newMessage: Message = {
-          id: data.data.id,
-          conversationId: data.data.conversationId || conversationId,
-          senderId: data.data.senderId,
-          sender: data.data.sender || {
-            id: currentUser.id,
-            username: currentUser.username,
-            fullName: currentUser.fullName || currentUser.username,
-            avatar: currentUser.avatar || '',
-          },
-          content: data.data.content,
-          isRead: data.data.isRead || false,
-          createdAt: data.data.createdAt || new Date().toISOString(),
-        };
-        
-        // Replace optimistic message with real message
-        setMessages(prev => {
-          // Remove optimistic message
-          const filtered = prev.filter(msg => msg.id !== optimisticMessage.id);
-          // Check if message already exists (avoid duplicates)
-          const exists = filtered.some(msg => msg.id === newMessage.id);
-          if (exists) {
-            return filtered;
+      const newMessage: Message = res.data;
+
+      // Replace optimistic message with real message
+      setMessages(prev => {
+        const filtered = prev.filter(msg => msg.id !== optimisticMessage.id);
+        if (filtered.some(msg => msg.id === newMessage.id)) return filtered;
+        return [...filtered, newMessage];
+      });
+
+      // Refresh conversations to update last message
+      const convRes = await messageService.getConversations(currentUser.id);
+      if (convRes.success && convRes.data) {
+        setConversations(convRes.data);
+        setSelectedConversation(prev => {
+          if (!prev || prev.id !== conversationId) return prev;
+          const updatedConv = convRes.data!.find(c => c.id === conversationId);
+          if (updatedConv) {
+            return { ...prev, lastMessage: updatedConv.lastMessage, updatedAt: updatedConv.updatedAt };
           }
-          // Add new message
-          const updated = [...filtered, newMessage];
-          return updated;
+          return prev;
         });
-        
-        // Refresh conversations to update last message (without triggering message refetch)
-        fetch(`/api/messages?userId=${currentUser.id}`)
-          .then(res => res.json())
-          .then(convData => {
-            if (convData.success && convData.data) {
-              const formattedConversations: Conversation[] = convData.data.map((conv: any) => ({
-                id: conv.id,
-                participants: conv.participants || [],
-                lastMessage: conv.lastMessage ? {
-                  id: conv.lastMessage.id,
-                  conversationId: conv.lastMessage.conversationId,
-                  senderId: conv.lastMessage.senderId,
-                  sender: conv.lastMessage.sender || conv.participants[0],
-                  content: conv.lastMessage.content,
-                  isRead: conv.lastMessage.isRead || false,
-                  createdAt: conv.lastMessage.createdAt,
-                } : undefined,
-                unreadCount: 0,
-                updatedAt: conv.updatedAt,
-              }));
-              setConversations(formattedConversations);
-              
-              // Update selected conversation's last message without changing the conversation object
-              // This prevents the useEffect from re-fetching messages
-              setSelectedConversation(prev => {
-                if (!prev || prev.id !== conversationId) return prev;
-                const updatedConv = formattedConversations.find(c => c.id === conversationId);
-                if (updatedConv) {
-                  return {
-                    ...prev,
-                    lastMessage: updatedConv.lastMessage,
-                    updatedAt: updatedConv.updatedAt,
-                  };
-                }
-                return prev;
-              });
-            }
-          })
-          .catch(err => {
-            console.error('Error refreshing conversations:', err);
-          });
-      } else {
-        console.error('Failed to send message:', data.error);
-        // Remove optimistic message on error
-        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
-        setMessageText(textToSend); // Restore text
-        alert(data.error || '메시지 전송에 실패했습니다.');
       }
     } catch (err) {
       console.error('Error sending message:', err);
-      // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
-      setMessageText(textToSend); // Restore text
+      setMessageText(textToSend);
     } finally {
       setSending(false);
     }

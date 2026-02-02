@@ -66,6 +66,7 @@ export const authService = {
     });
   },
 
+  // signup_service layer
   async signup(data: SignupData): Promise<ApiResponse<AuthUser>> {
     return fetchApi<AuthUser>('/auth/signup', {
       method: 'POST',
@@ -339,37 +340,86 @@ export const notificationService = {
 };
 
 // ============================================================================
-// Message Service
+// Message Service (aligned with /api/messages)
 // ============================================================================
+function formatConversationFromApi(conv: any): Conversation {
+  return {
+    id: conv.id,
+    participants: conv.participants || [],
+    lastMessage: conv.lastMessage
+      ? {
+          id: conv.lastMessage.id,
+          conversationId: conv.lastMessage.conversationId,
+          senderId: conv.lastMessage.senderId,
+          sender: conv.lastMessage.sender || conv.participants?.[0] || { id: '', username: 'unknown', fullName: '', avatar: null },
+          content: conv.lastMessage.content,
+          isRead: conv.lastMessage.isRead ?? false,
+          createdAt: conv.lastMessage.createdAt,
+        }
+      : undefined,
+    unreadCount: 0,
+    updatedAt: conv.updatedAt,
+  };
+}
+
+function formatMessageFromApi(msg: any): import('../types').Message {
+  return {
+    id: msg.id,
+    conversationId: msg.conversationId,
+    senderId: msg.senderId,
+    sender: msg.sender || { id: msg.senderId, username: 'unknown', fullName: 'Unknown', avatar: null },
+    content: msg.content,
+    isRead: msg.isRead ?? false,
+    createdAt: msg.createdAt,
+  };
+}
+
 export const messageService = {
-  async getConversations(): Promise<ApiResponse<Conversation[]>> {
-    return fetchApi<Conversation[]>('/conversations');
+  async getConversations(userId: string): Promise<ApiResponse<Conversation[]>> {
+    const res = await fetchApi<any>(`/messages?userId=${encodeURIComponent(userId)}`);
+    if (!res.success || res.data == null) return { ...res, data: null };
+    const list = Array.isArray(res.data) ? res.data : [];
+    return {
+      success: true,
+      data: list.map((conv: any) => formatConversationFromApi(conv)),
+    };
   },
 
-  async getConversation(conversationId: string): Promise<ApiResponse<Conversation>> {
-    return fetchApi<Conversation>(`/conversations/${conversationId}`);
+  async getMessages(
+    conversationId: string,
+    page = 1,
+    limit = 50
+  ): Promise<ApiResponse<import('../types').Message[]>> {
+    const res = await fetchApi<any>(`/messages/${conversationId}?page=${page}&limit=${limit}`);
+    if (!res.success || res.data == null) return { ...res, data: res.data };
+    const list = Array.isArray(res.data) ? res.data : [];
+    return {
+      success: true,
+      data: list.map((msg: any) => formatMessageFromApi(msg)),
+    };
   },
 
-  async getMessages(conversationId: string, page = 1): Promise<ApiResponse<PaginatedResponse<import('../types').Message>>> {
-    return fetchApi<PaginatedResponse<import('../types').Message>>(`/conversations/${conversationId}/messages?page=${page}`);
-  },
-
-  async sendMessage(conversationId: string, content: string): Promise<ApiResponse<import('../types').Message>> {
-    return fetchApi<import('../types').Message>(`/conversations/${conversationId}/messages`, {
+  async sendMessage(
+    senderId: string,
+    receiverId: string,
+    content: string
+  ): Promise<ApiResponse<import('../types').Message>> {
+    const res = await fetchApi<import('../types').Message>('/messages', {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ senderId, receiverId, content }),
     });
+    if (!res.success || !res.data) return res;
+    return {
+      ...res,
+      data: formatMessageFromApi(res.data as any),
+    };
   },
 
-  async createConversation(participantIds: string[]): Promise<ApiResponse<Conversation>> {
-    return fetchApi<Conversation>('/conversations', {
-      method: 'POST',
-      body: JSON.stringify({ participantIds }),
+  async markAsRead(conversationId: string, userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/messages/${conversationId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ userId }),
     });
-  },
-
-  async deleteConversation(conversationId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/conversations/${conversationId}`, { method: 'DELETE' });
   },
 };
 

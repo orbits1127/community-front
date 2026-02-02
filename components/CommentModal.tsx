@@ -1,28 +1,92 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { X, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Smile } from 'lucide-react';
 import { Post as PostType, Comment, AuthUser } from '../types';
-import { commentService, postService } from '../services/dataService';
+import { postService, userService } from '../services/dataService';
 
 interface CommentModalProps {
   post: PostType;
   currentUser?: AuthUser | null;
   onClose: () => void;
   onCommentAdded?: (postId: string, newCommentsCount: number) => void;
+  onPostDeleted?: (postId: string) => void;
+  onPostEdit?: (post: PostType) => void;
 }
 
-const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose, onCommentAdded }) => {
+const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose, onCommentAdded, onPostDeleted, onPostEdit }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [postingComment, setPostingComment] = useState(false);
   const [currentPost, setCurrentPost] = useState<PostType>(post);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
   
   // Update currentPost when post prop changes
   useEffect(() => {
     setCurrentPost(post);
   }, [post]);
+
+  const isOwnPost = Boolean(currentUser && currentPost.user?.id === currentUser.id);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMoreMenu]);
+
+  const handleDeletePost = async () => {
+    setShowMoreMenu(false);
+    try {
+      const res = await postService.deletePost(currentPost.id);
+      if (res.success) {
+        onPostDeleted?.(currentPost.id);
+        onClose();
+      }
+    } catch (err) {
+      console.error('Error deleting post:', err);
+    }
+  };
+
+  const handleEditPost = () => {
+    setShowMoreMenu(false);
+    onPostEdit?.(currentPost);
+  };
+
+  const handleReport = () => {
+    setShowMoreMenu(false);
+    // TODO: report API
+    alert('신고 기능은 준비 중입니다.');
+  };
+
+  const handleUnfollow = async () => {
+    if (!currentUser || !currentPost.user?.id) return;
+    setShowMoreMenu(false);
+    try {
+      await userService.unfollowUser(currentPost.user.id, currentUser.id);
+      // Optionally update UI (e.g. Follow button text)
+    } catch (err) {
+      console.error('Error unfollowing:', err);
+    }
+  };
+
+  const handleAddToFavorites = async () => {
+    if (!currentUser) return;
+    setShowMoreMenu(false);
+    try {
+      await postService.savePost(currentPost.id, currentUser.id);
+      setCurrentPost(prev => ({ ...prev, isSaved: true }));
+    } catch (err) {
+      console.error('Error saving post:', err);
+    }
+  };
 
   // Safe access to user data with fallbacks
   const user = currentPost.user || {
@@ -170,9 +234,51 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
               <span className="modal-separator">•</span>
               <button className="modal-follow-btn">Follow</button>
             </div>
-            <button className="modal-more-btn" aria-label="More options">
-              <MoreHorizontal size={20} />
-            </button>
+            <div className="post-more-wrap" ref={moreMenuRef}>
+              <button
+                type="button"
+                className="modal-more-btn"
+                aria-label="More options"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMoreMenu((v) => !v);
+                }}
+              >
+                <MoreHorizontal size={20} />
+              </button>
+              {showMoreMenu && (
+                <div className="post-more-dropdown" onClick={(e) => e.stopPropagation()}>
+                  {isOwnPost ? (
+                    <>
+                      <button type="button" className="post-more-item post-more-item--danger" onClick={handleDeletePost}>
+                        삭제
+                      </button>
+                      <button type="button" className="post-more-item" onClick={handleEditPost}>
+                        수정
+                      </button>
+                      <button type="button" className="post-more-item" onClick={() => setShowMoreMenu(false)}>
+                        취소
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" className="post-more-item post-more-item--danger" onClick={handleReport}>
+                        신고
+                      </button>
+                      <button type="button" className="post-more-item" onClick={handleUnfollow}>
+                        팔로우 취소
+                      </button>
+                      <button type="button" className="post-more-item" onClick={handleAddToFavorites}>
+                        즐겨찾기 추가
+                      </button>
+                      <button type="button" className="post-more-item" onClick={() => setShowMoreMenu(false)}>
+                        취소
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </header>
 
           <div className="modal-comments-section">

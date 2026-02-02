@@ -211,7 +211,8 @@ const ExploreView: React.FC<ExploreViewProps> = ({ currentUser }) => {
         <CommentModal 
           post={selectedPost} 
           currentUser={currentUser}
-          onClose={() => setSelectedPost(null)} 
+          onClose={() => setSelectedPost(null)}
+          onPostDeleted={() => setSelectedPost(null)}
         />
       )}
     </div>
