@@ -304,7 +304,59 @@ button {
 .messages-bubble--sent {
   align-self: flex-end;
   background-color: var(--ig-link);
-  opacity: 0.8;
+  color: #fff;
+}
+
+.messages-row {
+  display: flex;
+  margin-bottom: 0;
+}
+
+.messages-row--sent {
+  justify-content: flex-end;
+}
+
+.messages-row--received {
+  justify-content: flex-start;
+}
+
+.messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.messages-input-field {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 22px;
+  border: none;
+  background-color: transparent;
+  color: var(--ig-primary-text);
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.messages-send-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.messages-send-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .messages-bubble__text-placeholder {

@@ -38,26 +38,37 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [conversationsError, setConversationsError] = useState<string | null>(null);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const didInitialSelectRef = React.useRef(false);
+  const scrollToBottomRef = React.useRef(false);
 
   // =============================================================================
-  // Load conversations (service → store, auto-select first)
+  // Load conversations (service → store, auto-select first only on initial load)
   // =============================================================================
   useEffect(() => {
     const loadConversations = async () => {
       if (!currentUser?.id) return;
 
       setLoading(true);
+      setConversationsError(null);
       try {
         const res = await messageService.getConversations(currentUser.id);
         if (res.success && res.data) {
           setConversations(res.data);
-          if (res.data.length > 0 && !selectedConversation) {
+          if (res.data.length > 0 && !didInitialSelectRef.current) {
+            didInitialSelectRef.current = true;
             setSelectedConversation(res.data[0]);
           }
+        } else {
+          setConversationsError(res.error || '대화 목록을 불러오지 못했습니다.');
         }
       } catch (err) {
         console.error('Error loading conversations:', err);
+        setConversationsError(err instanceof Error ? err.message : '대화 목록을 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
@@ -67,43 +78,39 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   }, [currentUser?.id]);
 
   // =============================================================================
-  // Load messages for selected conversation (service → store)
+  // Load messages for selected conversation (single effect, no derived state)
   // =============================================================================
   const fetchMessages = useCallback(async (conversationId: string) => {
     setLoadingMessages(true);
+    setMessagesError(null);
     try {
       const res = await messageService.getMessages(conversationId);
       if (res.success && res.data) {
         setMessages(res.data);
+      } else {
+        setMessagesError(res.error || '메시지를 불러오지 못했습니다.');
       }
     } catch (err) {
       console.error('Error loading messages:', err);
+      setMessagesError(err instanceof Error ? err.message : '메시지를 불러오지 못했습니다.');
     } finally {
       setLoadingMessages(false);
     }
   }, []);
 
-  // Current conversation ID (avoid unnecessary refetch)
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-
   useEffect(() => {
     if (selectedConversation?.id) {
-      setCurrentConversationId(selectedConversation.id);
+      fetchMessages(selectedConversation.id);
     } else {
-      setCurrentConversationId(null);
       setMessages([]);
+      setMessagesError(null);
     }
-  }, [selectedConversation?.id]);
+  }, [selectedConversation?.id, fetchMessages]);
 
+  // Scroll to bottom only when we intentionally sent a message or added new one (not on initial load)
   useEffect(() => {
-    if (currentConversationId) {
-      fetchMessages(currentConversationId);
-    }
-  }, [currentConversationId, fetchMessages]);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messagesEndRef.current) {
+    if (scrollToBottomRef.current && messagesEndRef.current) {
+      scrollToBottomRef.current = false;
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
@@ -120,13 +127,13 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
     
     if (!otherParticipant) return;
 
-    // Clear input immediately for better UX
+    setSendError(null);
     setMessageText('');
     setSending(true);
 
-    // Create optimistic message
+    const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimisticMessage: Message = {
-      id: `temp-${Date.now()}`,
+      id: optimisticId,
       conversationId: conversationId,
       senderId: currentUser.id,
       sender: {
@@ -140,14 +147,11 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
       createdAt: new Date().toISOString(),
     };
 
-    // Add optimistic message immediately
     setMessages(prev => {
-      // Avoid duplicates
-      if (prev.some(msg => msg.id === optimisticMessage.id)) {
-        return prev;
-      }
+      if (prev.some(msg => msg.id === optimisticMessage.id)) return prev;
       return [...prev, optimisticMessage];
     });
+    scrollToBottomRef.current = true;
 
     try {
       const res = await messageService.sendMessage(
@@ -160,7 +164,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
         console.error('Failed to send message:', res.error);
         setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         setMessageText(textToSend);
-        alert(res.error || '메시지 전송에 실패했습니다.');
+        setSendError(res.error || '메시지 전송에 실패했습니다.');
         return;
       }
 
@@ -190,6 +194,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
       console.error('Error sending message:', err);
       setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
       setMessageText(textToSend);
+      setSendError(err instanceof Error ? err.message : '메시지 전송에 실패했습니다.');
     } finally {
       setSending(false);
     }
@@ -221,18 +226,66 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
           <div className="messages-sidebar__header-text" style={{ fontSize: '20px', fontWeight: 600 }}>
             {currentUser?.username || 'Messages'}
           </div>
-          <button className="messages-input-icon" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button
+            type="button"
+            className="messages-input-icon"
+            onClick={() => setSearchOpen(prev => !prev)}
+            aria-label={searchOpen ? '검색 닫기' : '검색'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
             <Search size={24} />
           </button>
         </header>
+        {searchOpen && (
+          <div className="messages-sidebar__search" style={{ padding: '8px 12px', borderBottom: '1px solid var(--ig-separator)' }}>
+            <input
+              type="text"
+              placeholder="사용자 검색..."
+              className="messages-input-bar"
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--ig-separator)', backgroundColor: 'var(--ig-primary-background)', color: 'var(--ig-primary-text)', fontSize: '14px', outline: 'none' }}
+              aria-label="대화 상대 검색"
+            />
+          </div>
+        )}
         <div className="messages-sidebar__list">
-          {loading ? (
+          {conversationsError ? (
+            <div className="messages-error" style={{ padding: '20px', textAlign: 'center', color: 'var(--ig-secondary-text)' }}>
+              <p style={{ marginBottom: '12px' }}>{conversationsError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setConversationsError(null);
+                  if (currentUser?.id) {
+                    setLoading(true);
+                    messageService.getConversations(currentUser.id).then(res => {
+                      if (res.success && res.data) {
+                        setConversations(res.data);
+                        if (res.data.length > 0 && !didInitialSelectRef.current) {
+                          didInitialSelectRef.current = true;
+                          setSelectedConversation(res.data[0]);
+                        }
+                      } else {
+                        setConversationsError(res.error || '대화 목록을 불러오지 못했습니다.');
+                      }
+                      setLoading(false);
+                    }).catch(err => {
+                      setConversationsError(err instanceof Error ? err.message : '대화 목록을 불러오지 못했습니다.');
+                      setLoading(false);
+                    });
+                  }
+                }}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--ig-separator)', backgroundColor: 'var(--ig-secondary-background)', color: 'var(--ig-primary-text)', cursor: 'pointer', fontSize: '14px' }}
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : loading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <ConversationItemPlaceholder key={`loading-${i}`} />
             ))
           ) : conversations.length > 0 ? (
             conversations.map((conv) => {
-              const otherUser = conv.participants[0];
+              const otherUser = conv.participants.find(p => p.id !== currentUser?.id);
               const isSelected = selectedConversation?.id === conv.id;
               
               return (
@@ -296,48 +349,51 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
             </header>
 
             {/* Body: message bubbles (sent/received) */}
-            <div className="messages-content__body" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-              {loadingMessages ? (
-                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--ig-secondary-text)' }}>
+            <div className="messages-content__body">
+              {messagesError ? (
+                <div className="messages-error" style={{ padding: '20px', textAlign: 'center', color: 'var(--ig-secondary-text)' }}>
+                  <p style={{ marginBottom: '12px' }}>{messagesError}</p>
+                  <button
+                    type="button"
+                    onClick={() => selectedConversation?.id && fetchMessages(selectedConversation.id)}
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--ig-separator)', backgroundColor: 'var(--ig-secondary-background)', color: 'var(--ig-primary-text)', cursor: 'pointer', fontSize: '14px' }}
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : loadingMessages ? (
+                <div className="messages-loading" style={{ textAlign: 'center', padding: '20px', color: 'var(--ig-secondary-text)' }}>
                   메시지 로딩 중...
                 </div>
               ) : messages.length > 0 ? (
                 <>
-                  {messages.map((message, index) => {
-                    const isSent = message.senderId === currentUser?.id;
-                    
-                    return (
-                      <div
-                        key={message.id || `msg-${index}`}
-                        style={{
-                          display: 'flex',
-                          justifyContent: isSent ? 'flex-end' : 'flex-start',
-                          marginBottom: '12px',
-                        }}
-                      >
+                  <div
+                    className="messages-list"
+                    role="log"
+                    aria-live="polite"
+                    aria-label="메시지 목록"
+                    style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+                  >
+                    {messages.map((message, index) => {
+                      const isSent = message.senderId === currentUser?.id;
+                      return (
                         <div
-                          className={`messages-bubble ${isSent ? 'messages-bubble--sent' : 'messages-bubble--received'}`}
-                          style={{
-                            maxWidth: '60%',
-                            padding: '12px 16px',
-                            borderRadius: '22px',
-                            backgroundColor: isSent ? '#0095f6' : '#efefef',
-                            color: isSent ? 'white' : '#000000',
-                            fontSize: '14px',
-                            lineHeight: '1.4',
-                            wordBreak: 'break-word',
-                            whiteSpace: 'pre-wrap',
-                          }}
+                          key={message.id || `msg-${index}`}
+                          className={`messages-row ${isSent ? 'messages-row--sent' : 'messages-row--received'}`}
                         >
-                          {message.content || ''}
+                          <div
+                            className={`messages-bubble ${isSent ? 'messages-bubble--sent' : 'messages-bubble--received'}`}
+                          >
+                            {message.content || ''}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                   <div ref={messagesEndRef} />
                 </>
               ) : (
-                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--ig-secondary-text)' }}>
+                <div className="messages-empty" style={{ textAlign: 'center', padding: '20px', color: 'var(--ig-secondary-text)' }}>
                   메시지가 없습니다
                 </div>
               )}
@@ -345,74 +401,47 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
 
             {/* Footer: message input + send button (Enter to send) */}
             <footer className="messages-content__footer">
-              <div className="messages-input-bar" style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px', 
-                padding: '0 16px',
-                height: '44px',
-                border: '1px solid var(--ig-separator)',
-                borderRadius: '22px',
-                backgroundColor: 'var(--ig-primary-background)',
-              }}>
+              {sendError && (
+                <div className="messages-send-error" style={{ padding: '8px 16px', marginBottom: '8px', borderRadius: '8px', backgroundColor: 'var(--ig-secondary-background)', color: 'var(--ig-primary-text)', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <span>{sendError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSendError(null)}
+                    aria-label="에러 메시지 닫기"
+                    style={{ background: 'none', border: 'none', color: 'var(--ig-secondary-text)', cursor: 'pointer', padding: '4px', fontSize: '12px' }}
+                  >
+                    닫기
+                  </button>
+                </div>
+              )}
+              <div className="messages-input-bar">
                 <input
                   type="text"
                   placeholder="메시지 보내기..."
                   value={messageText}
-                  onChange={(e) => {
-                    setMessageText(e.target.value);
-                  }}
+                  onChange={(e) => setMessageText(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && messageText.trim() && !sending) {
                       e.preventDefault();
                       handleSendMessage();
                     }
                   }}
-                  style={{
-                    flex: 1,
-                    padding: '10px 16px',
-                    borderRadius: '22px',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    color: 'var(--ig-primary-text)',
-                    fontSize: '14px',
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                    lineHeight: '1.4',
-                    minWidth: 0,
-                  }}
+                  className="messages-input-field"
+                  aria-label="메시지 입력"
                 />
                 <button
+                  type="button"
                   onClick={handleSendMessage}
                   disabled={!messageText.trim() || sending}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '10px',
-                    background: 'none',
-                    border: 'none',
-                    cursor: messageText.trim() && !sending ? 'pointer' : 'not-allowed',
-                    opacity: messageText.trim() && !sending ? 1 : 0.5,
-                    transition: 'opacity 0.2s',
-                    visibility: 'visible',
-                    minWidth: '44px',
-                    minHeight: '44px',
-                    flexShrink: 0,
-                  }}
+                  className="messages-send-button"
+                  aria-label={messageText.trim() && !sending ? '메시지 전송' : '메시지를 입력하세요'}
                   title={messageText.trim() && !sending ? '전송' : '메시지를 입력하세요'}
                 >
-                  <Send 
-                    size={24} 
-                    color={messageText.trim() && !sending ? '#0095f6' : '#737373'} 
-                    style={{
-                      transition: 'color 0.2s',
-                      display: 'block',
-                      flexShrink: 0,
-                      pointerEvents: 'none',
-                      width: '24px',
-                      height: '24px',
-                    }}
+                  <Send
+                    size={24}
+                    color={messageText.trim() && !sending ? 'var(--ig-link)' : 'var(--ig-secondary-text)'}
+                    style={{ flexShrink: 0, pointerEvents: 'none' }}
+                    aria-hidden
                   />
                 </button>
               </div>

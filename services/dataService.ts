@@ -92,7 +92,7 @@ export const userService = {
   },
 
   async getProfileByUsername(username: string): Promise<ApiResponse<UserProfile>> {
-    return fetchApi<UserProfile>(`/users/username/${username}/profile`);
+    return fetchApi<UserProfile>(`/users/username/${encodeURIComponent(username)}/profile`);
   },
 
   async updateProfile(userId: string, data: Partial<User>): Promise<ApiResponse<User>> {
@@ -234,16 +234,22 @@ export const commentService = {
     });
   },
 
-  async deleteComment(commentId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/comments/${commentId}`, { method: 'DELETE' });
+  async deleteComment(postId: string, commentId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/posts/${postId}/comments/${commentId}`, { method: 'DELETE' });
   },
 
-  async likeComment(commentId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/comments/${commentId}/like`, { method: 'POST' });
+  async likeComment(postId: string, commentId: string, userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/posts/${postId}/comments/${commentId}/like`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
   },
 
-  async unlikeComment(commentId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/comments/${commentId}/unlike`, { method: 'POST' });
+  async unlikeComment(postId: string, commentId: string, userId: string): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/posts/${postId}/comments/${commentId}/like`, {
+      method: 'DELETE',
+      body: JSON.stringify({ userId }),
+    });
   },
 };
 
@@ -434,15 +440,21 @@ export const uploadService = {
     try {
       const response = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        return {
+          success: false,
+          data: null,
+          error: data.error || `HTTP error! status: ${response.status}`,
+        };
       }
 
-      const data = await response.json();
-      return { success: true, data };
+      return { success: true, data: data.data ?? data };
     } catch (error) {
       console.error('Upload Error:', error);
       return {
