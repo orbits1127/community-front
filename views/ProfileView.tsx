@@ -1284,6 +1284,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
             setSelectedPost(null);
             setPosts(prev => prev.filter(p => p.id !== postId));
           }}
+          onPostEdit={(updatedPost) => {
+            setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
+            setSelectedPost(prev => prev && prev.id === updatedPost.id ? { ...prev, ...updatedPost } : prev);
+          }}
         />
       )}
     </div>

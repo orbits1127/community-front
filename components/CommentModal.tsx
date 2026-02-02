@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Smile } from 'lucide-react';
 import { Post as PostType, Comment, AuthUser } from '../types';
-import { postService, userService } from '../services/dataService';
+import { postService, userService, commentService } from '../services/dataService';
 
 interface CommentModalProps {
   post: PostType;
@@ -22,6 +22,9 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
   const [currentPost, setCurrentPost] = useState<PostType>(post);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const [isEditingCaption, setIsEditingCaption] = useState(false);
+  const [editCaption, setEditCaption] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
   
   // Update currentPost when post prop changes
   useEffect(() => {
@@ -57,7 +60,54 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
 
   const handleEditPost = () => {
     setShowMoreMenu(false);
-    onPostEdit?.(currentPost);
+    setEditCaption(currentPost.caption ?? '');
+    setIsEditingCaption(true);
+  };
+
+  const handleSaveCaption = async () => {
+    setEditSaving(true);
+    try {
+      const res = await postService.updatePost(currentPost.id, { caption: editCaption.trim() });
+      if (res.success && res.data) {
+        setCurrentPost(prev => ({ ...prev, caption: editCaption.trim() }));
+        onPostEdit?.(res.data);
+        setIsEditingCaption(false);
+      } else {
+        console.error('Failed to update caption:', res.error);
+      }
+    } catch (err) {
+      console.error('Error updating caption:', err);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleCancelEditCaption = () => {
+    setIsEditingCaption(false);
+    setEditCaption('');
+  };
+
+  const handleToggleCommentLike = async (comment: Comment) => {
+    if (!currentUser?.id) return;
+    try {
+      if (comment.isLiked) {
+        await commentService.unlikeComment(currentPost.id, comment.id, currentUser.id);
+        setComments(prev =>
+          prev.map(c =>
+            c.id === comment.id ? { ...c, isLiked: false, likes: Math.max(0, (c.likes ?? 0) - 1) } : c
+          )
+        );
+      } else {
+        await commentService.likeComment(currentPost.id, comment.id, currentUser.id);
+        setComments(prev =>
+          prev.map(c =>
+            c.id === comment.id ? { ...c, isLiked: true, likes: (c.likes ?? 0) + 1 } : c
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Error toggling comment like:', err);
+    }
   };
 
   const handleReport = () => {
@@ -256,7 +306,7 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
                       <button type="button" className="post-more-item" onClick={handleEditPost}>
                         수정
                       </button>
-                      <button type="button" className="post-more-item" onClick={() => setShowMoreMenu(false)}>
+                      <button type="button" className="post-more-item" onClick={() => { setShowMoreMenu(false); onClose(); }}>
                         취소
                       </button>
                     </>
@@ -271,7 +321,7 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
                       <button type="button" className="post-more-item" onClick={handleAddToFavorites}>
                         즐겨찾기 추가
                       </button>
-                      <button type="button" className="post-more-item" onClick={() => setShowMoreMenu(false)}>
+                      <button type="button" className="post-more-item" onClick={() => { setShowMoreMenu(false); onClose(); }}>
                         취소
                       </button>
                     </>
@@ -283,13 +333,46 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
 
           <div className="modal-comments-section">
             {/* Caption */}
-            {currentPost.caption && (
+            {(currentPost.caption || isEditingCaption) && (
               <div className="modal-comment">
                 <img src={avatar} className="modal-comment-avatar" alt={username} />
                 <div className="modal-comment-content">
                   <span className="modal-comment-username">{username}</span>
-                  <span className="modal-comment-text">{currentPost.caption}</span>
-                  <div className="modal-comment-time">1d</div>
+                  {isEditingCaption ? (
+                    <>
+                      <textarea
+                        className="modal-caption-edit"
+                        value={editCaption}
+                        onChange={(e) => setEditCaption(e.target.value)}
+                        placeholder="캡션을 입력하세요"
+                        rows={3}
+                        autoFocus
+                      />
+                      <div className="modal-caption-actions">
+                        <button
+                          type="button"
+                          className="post-more-item"
+                          onClick={handleCancelEditCaption}
+                          disabled={editSaving}
+                        >
+                          취소
+                        </button>
+                        <button
+                          type="button"
+                          className="post-more-item"
+                          onClick={handleSaveCaption}
+                          disabled={editSaving || !editCaption.trim()}
+                        >
+                          {editSaving ? '저장 중…' : '저장'}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="modal-comment-text">{currentPost.caption}</span>
+                      <div className="modal-comment-time">1d</div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -318,7 +401,12 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
                       <button className="modal-comment-action-btn">Reply</button>
                     </div>
                   </div>
-                  <button className="modal-comment-like-btn" aria-label="Like comment">
+                  <button
+                    type="button"
+                    className={`modal-comment-like-btn ${comment.isLiked ? 'modal-comment-like-btn--liked' : ''}`}
+                    aria-label={comment.isLiked ? 'Unlike comment' : 'Like comment'}
+                    onClick={() => handleToggleCommentLike(comment)}
+                  >
                     <Heart size={12} fill={comment.isLiked ? 'currentColor' : 'none'} />
                   </button>
                 </div>

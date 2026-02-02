@@ -55,6 +55,23 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
   const storyFileInputRef = useRef<HTMLInputElement>(null);
 
   // =============================================================================
+  // State: post more menu (which post's dropdown is open)
+  // =============================================================================
+  const [moreMenuPostId, setMoreMenuPostId] = useState<string | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!moreMenuPostId) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuPostId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [moreMenuPostId]);
+
+  // =============================================================================
   // Story: add click / file select and upload
   // =============================================================================
   const handleAddStoryClick = useCallback(() => {
@@ -373,6 +390,24 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
   }, [currentUser?.id]);
 
   // =============================================================================
+  // Post more menu: unfollow author, add to favorites (save/unsave), cancel
+  // =============================================================================
+  const handleUnfollowPostAuthor = useCallback(async (post: Post) => {
+    if (!currentUser?.id || !post.user?.id || post.user.id === currentUser.id) return;
+    setMoreMenuPostId(null);
+    try {
+      await userService.unfollowUser(post.user.id, currentUser.id);
+    } catch (err) {
+      console.error('Error unfollowing user:', err);
+    }
+  }, [currentUser?.id]);
+
+  const handleSaveFromMoreMenu = useCallback((post: Post) => {
+    setMoreMenuPostId(null);
+    handleSave(post.id, post.isSaved || false);
+  }, [handleSave]);
+
+  // =============================================================================
   // UI helper: skeleton count when no data
   // =============================================================================
   const renderPlaceholder = (count: number) =>
@@ -472,9 +507,49 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                       {post.location && <span className="post__location">{post.location}</span>}
                     </div>
                   </div>
-                  <button className="post__more-btn">
-                    <MoreHorizontal size={24} />
-                  </button>
+                  <div
+                    className="post-more-wrap"
+                    ref={moreMenuPostId === post.id ? moreMenuRef : undefined}
+                  >
+                    <button
+                      type="button"
+                      className="post__more-btn"
+                      aria-label="More options"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMoreMenuPostId(prev => (prev === post.id ? null : post.id));
+                      }}
+                    >
+                      <MoreHorizontal size={24} />
+                    </button>
+                    {moreMenuPostId === post.id && (
+                      <div className="post-more-dropdown" onClick={(e) => e.stopPropagation()}>
+                        {post.user?.id && post.user.id !== currentUser?.id && (
+                          <button
+                            type="button"
+                            className="post-more-item"
+                            onClick={() => handleUnfollowPostAuthor(post)}
+                          >
+                            팔로우 취소
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="post-more-item"
+                          onClick={() => handleSaveFromMoreMenu(post)}
+                        >
+                          {post.isSaved ? '즐겨찾기 취소' : '즐겨찾기에 추가'}
+                        </button>
+                        <button
+                          type="button"
+                          className="post-more-item"
+                          onClick={() => setMoreMenuPostId(null)}
+                        >
+                          취소
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Post media: image + double-click like + like animation */}

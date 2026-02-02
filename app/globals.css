@@ -762,6 +762,34 @@ button.story-item.story-item--add:disabled {
   color: var(--ig-secondary-text);
 }
 
+.modal-caption-edit {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  font-size: 14px;
+  line-height: 18px;
+  border: 1px solid var(--ig-border);
+  border-radius: 8px;
+  resize: vertical;
+  outline: none;
+}
+
+.modal-caption-edit:focus {
+  border-color: var(--ig-secondary-text);
+}
+
+.modal-caption-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.modal-caption-actions .post-more-item {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 .modal-comment-actions {
   margin-top: 4px;
   display: flex;
@@ -788,6 +816,14 @@ button.story-item.story-item--add:disabled {
 
 .modal-comment-like-btn:hover {
   color: var(--ig-primary-text);
+}
+
+.modal-comment-like-btn--liked {
+  color: #ed4956;
+}
+
+.modal-comment-like-btn--liked:hover {
+  color: #ed4956;
 }
 
 .modal-footer {
