@@ -447,10 +447,10 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                   ) : (
                     <div className="story-item__placeholder"></div>
                   )}
-                  <span className="story-item__add-icon">
-                    <Plus size={20} strokeWidth={2.5} />
-                  </span>
                 </div>
+                <span className="story-item__add-icon">
+                  <Plus size={20} strokeWidth={2.5} />
+                </span>
               </div>
               <span className="story-item__username">
                 {creatingStory ? '올리는 중…' : '스토리'}

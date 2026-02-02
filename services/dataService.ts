@@ -87,8 +87,11 @@ export const authService = {
 // User Service
 // ============================================================================
 export const userService = {
-  async getProfile(userId: string): Promise<ApiResponse<UserProfile>> {
-    return fetchApi<UserProfile>(`/users/${userId}`);
+  async getProfile(userId: string, viewerId?: string | null): Promise<ApiResponse<UserProfile>> {
+    const url = viewerId
+      ? `/users/${userId}?viewerId=${encodeURIComponent(viewerId)}`
+      : `/users/${userId}`;
+    return fetchApi<UserProfile>(url);
   },
 
   async getProfileByUsername(username: string): Promise<ApiResponse<UserProfile>> {

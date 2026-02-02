@@ -9,7 +9,9 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    
+    const { searchParams } = new URL(request.url);
+    const viewerId = searchParams.get('viewerId') ?? undefined;
+
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -39,12 +41,26 @@ export async function GET(
       );
     }
 
+    let isFollowing = false;
+    if (viewerId && viewerId !== id) {
+      const follow = await prisma.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: viewerId,
+            followingId: id,
+          },
+        },
+      });
+      isFollowing = !!follow;
+    }
+
     const { _count, ...userWithoutCount } = user;
     const profile = {
       ...userWithoutCount,
       postsCount: _count.posts,
       followersCount: _count.followers,
       followingCount: _count.following,
+      isFollowing,
     };
 
     return NextResponse.json({

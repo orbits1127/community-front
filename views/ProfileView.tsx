@@ -90,7 +90,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
 
       try {
         const [profileRes, postsRes, highlightsRes] = await Promise.all([
-          userService.getProfile(userId),
+          userService.getProfile(userId, currentUser?.id),
           postService.getUserPosts(userId),
           highlightService.getHighlights(userId),
         ]);
@@ -116,7 +116,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
     };
 
     fetchProfileData();
-  }, [userId]);
+  }, [userId, currentUser?.id]);
 
   // Load saved posts when saved tab is active
   useEffect(() => {
