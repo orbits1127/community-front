@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AuthUser, LoginCredentials, SignupData } from '../types';
+import { AuthUser, LoginCredentials, SignupData, getLoginErrorReason } from '../types';
 import { authService } from '../services/dataService';
 
 // =============================================================================
@@ -38,6 +38,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loginErrorCode, setLoginErrorCode] = useState<string | null>(null);
 
   // State: form data (email, name, username, password)
   const [formData, setFormData] = useState<LoginCredentials & SignupData>({
@@ -64,6 +65,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError(null);
+    setLoginErrorCode(null);
   };
 
   const isFormValid = isSignup
@@ -76,6 +78,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
     setIsLoading(true);
     setError(null);
+    setLoginErrorCode(null);
 
     try {
       const response = await authService.login({
@@ -88,11 +91,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       } else {
         const msg = response.error || '로그인이 실패했습니다.';
         setError(msg);
-        alert(`로그인이 실패했습니다.\n${msg}`);
+        setLoginErrorCode(response.errorCode ?? null);
+        const reason = getLoginErrorReason(response.errorCode);
+        alert(`로그인이 실패했습니다.\n${reason || msg}`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '로그인에 실패했습니다.';
       setError(msg);
+      setLoginErrorCode('SERVER_ERROR');
       alert(`로그인이 실패했습니다.\n${msg}`);
     } finally {
       setIsLoading(false);
@@ -132,6 +138,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
     setIsSignup(!isSignup);
     setFormData({ username: '', password: '', email: '', fullName: '' });
     setError(null);
+    setLoginErrorCode(null);
   };
 
   return (
@@ -176,7 +183,12 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
             {error && (
               <div style={{ color: 'var(--ig-error)', fontSize: '14px', textAlign: 'center', marginBottom: '12px' }}>
-                {error}
+                {loginErrorCode && (
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                    {getLoginErrorReason(loginErrorCode)}
+                  </div>
+                )}
+                <div>{error}</div>
               </div>
             )}
 

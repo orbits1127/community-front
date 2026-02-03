@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Instagram } from 'lucide-react';
-import { AuthUser, LoginCredentials } from '../types';
+import { AuthUser, LoginCredentials, getLoginErrorReason } from '../types';
 import { authService } from '../services/dataService';
 
 interface LoginModalProps {
@@ -14,6 +14,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin }) => {
   const [formData, setFormData] = useState<LoginCredentials>({ username: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loginErrorCode, setLoginErrorCode] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const isFormValid = Boolean(formData.username && formData.password);
@@ -22,6 +23,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin }) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError(null);
+    setLoginErrorCode(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,6 +32,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin }) => {
 
     setIsLoading(true);
     setError(null);
+    setLoginErrorCode(null);
 
     try {
       const response = await authService.login({
@@ -42,9 +45,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin }) => {
         onClose();
       } else {
         setError(response.error || '로그인이 실패했습니다.');
+        setLoginErrorCode(response.errorCode ?? null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
+      setLoginErrorCode('SERVER_ERROR');
     } finally {
       setIsLoading(false);
     }
@@ -72,9 +77,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin }) => {
           </h1>
 
           {error && (
-            <p className="login-modal__error" role="alert">
-              {error}
-            </p>
+            <div className="login-modal__error" role="alert">
+              {loginErrorCode && (
+                <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                  {getLoginErrorReason(loginErrorCode)}
+                </div>
+              )}
+              <div>{error}</div>
+            </div>
           )}
 
           <form className="login-form" onSubmit={handleSubmit}>

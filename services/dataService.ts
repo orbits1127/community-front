@@ -42,6 +42,7 @@ async function fetchApi<T>(
         success: false,
         data: null,
         error: data.error || `HTTP error! status: ${response.status}`,
+        errorCode: data.errorCode,
       };
     }
 
