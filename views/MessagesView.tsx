@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Send, Search } from 'lucide-react';
-import { Conversation, Message, AuthUser } from '../types';
+import { Conversation, Message, AuthUser, User } from '../types';
 import { messageService } from '../services/dataService';
 
 // =============================================================================
@@ -11,6 +11,8 @@ import { messageService } from '../services/dataService';
 
 interface MessagesViewProps {
   currentUser?: AuthUser | null;
+  initialUserId?: string;
+  initialUsername?: string;
 }
 
 // =============================================================================
@@ -27,7 +29,7 @@ const ConversationItemPlaceholder: React.FC = () => (
   </div>
 );
 
-const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
+const MessagesView: React.FC<MessagesViewProps> = ({ currentUser, initialUserId, initialUsername }) => {
   // =============================================================================
   // State: conversations list, selected conversation, messages, input text, loading/sending
   // =============================================================================
@@ -47,7 +49,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   const scrollToBottomRef = React.useRef(false);
 
   // =============================================================================
-  // Load conversations (service → store, auto-select first only on initial load)
+  // Load conversations (service → store, auto-select first or initialUserId target)
   // =============================================================================
   useEffect(() => {
     const loadConversations = async () => {
@@ -59,9 +61,31 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
         const res = await messageService.getConversations(currentUser.id);
         if (res.success && res.data) {
           setConversations(res.data);
-          if (res.data.length > 0 && !didInitialSelectRef.current) {
+          if (!didInitialSelectRef.current) {
             didInitialSelectRef.current = true;
-            setSelectedConversation(res.data[0]);
+            if (initialUserId) {
+              const existing = res.data.find((c) =>
+                c.participants.some((p) => p.id === initialUserId)
+              );
+              if (existing) {
+                setSelectedConversation(existing);
+              } else {
+                const syntheticUser: User = {
+                  id: initialUserId,
+                  username: initialUsername ?? '',
+                  fullName: initialUsername ?? '',
+                  avatar: null,
+                };
+                setSelectedConversation({
+                  id: 'new',
+                  participants: [syntheticUser],
+                  unreadCount: 0,
+                  updatedAt: new Date().toISOString(),
+                });
+              }
+            } else if (res.data.length > 0) {
+              setSelectedConversation(res.data[0]);
+            }
           }
         } else {
           setConversationsError(res.error || '대화 목록을 불러오지 못했습니다.');
@@ -75,7 +99,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
     };
 
     loadConversations();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, initialUserId, initialUsername]);
 
   // =============================================================================
   // Load messages for selected conversation (single effect, no derived state)
@@ -99,7 +123,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
   }, []);
 
   useEffect(() => {
-    if (selectedConversation?.id) {
+    if (selectedConversation?.id && selectedConversation.id !== 'new') {
       fetchMessages(selectedConversation.id);
     } else {
       setMessages([]);
@@ -131,10 +155,11 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
     setMessageText('');
     setSending(true);
 
+    const isNewConversation = conversationId === 'new';
     const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimisticMessage: Message = {
       id: optimisticId,
-      conversationId: conversationId,
+      conversationId: isNewConversation ? '' : conversationId,
       senderId: currentUser.id,
       sender: {
         id: currentUser.id,
@@ -147,10 +172,12 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
       createdAt: new Date().toISOString(),
     };
 
-    setMessages(prev => {
-      if (prev.some(msg => msg.id === optimisticMessage.id)) return prev;
-      return [...prev, optimisticMessage];
-    });
+    if (!isNewConversation) {
+      setMessages(prev => {
+        if (prev.some(msg => msg.id === optimisticMessage.id)) return prev;
+        return [...prev, optimisticMessage];
+      });
+    }
     scrollToBottomRef.current = true;
 
     try {
@@ -162,7 +189,9 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
 
       if (!res.success || !res.data) {
         console.error('Failed to send message:', res.error);
-        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        if (!isNewConversation) {
+          setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        }
         setMessageText(textToSend);
         setSendError(res.error || '메시지 전송에 실패했습니다.');
         return;
@@ -170,29 +199,38 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
 
       const newMessage: Message = res.data;
 
-      // Replace optimistic message with real message
-      setMessages(prev => {
-        const filtered = prev.filter(msg => msg.id !== optimisticMessage.id);
-        if (filtered.some(msg => msg.id === newMessage.id)) return filtered;
-        return [...filtered, newMessage];
-      });
-
-      // Refresh conversations to update last message
-      const convRes = await messageService.getConversations(currentUser.id);
-      if (convRes.success && convRes.data) {
-        setConversations(convRes.data);
-        setSelectedConversation(prev => {
-          if (!prev || prev.id !== conversationId) return prev;
-          const updatedConv = convRes.data!.find(c => c.id === conversationId);
-          if (updatedConv) {
-            return { ...prev, lastMessage: updatedConv.lastMessage, updatedAt: updatedConv.updatedAt };
-          }
-          return prev;
+      if (isNewConversation) {
+        setMessages([newMessage]);
+        const convRes = await messageService.getConversations(currentUser.id);
+        if (convRes.success && convRes.data) {
+          setConversations(convRes.data);
+          const newConv = convRes.data.find(c => c.id === newMessage.conversationId);
+          if (newConv) setSelectedConversation(newConv);
+        }
+      } else {
+        setMessages(prev => {
+          const filtered = prev.filter(msg => msg.id !== optimisticMessage.id);
+          if (filtered.some(msg => msg.id === newMessage.id)) return filtered;
+          return [...filtered, newMessage];
         });
+        const convRes = await messageService.getConversations(currentUser.id);
+        if (convRes.success && convRes.data) {
+          setConversations(convRes.data);
+          setSelectedConversation(prev => {
+            if (!prev || prev.id !== conversationId) return prev;
+            const updatedConv = convRes.data!.find(c => c.id === conversationId);
+            if (updatedConv) {
+              return { ...prev, lastMessage: updatedConv.lastMessage, updatedAt: updatedConv.updatedAt };
+            }
+            return prev;
+          });
+        }
       }
     } catch (err) {
       console.error('Error sending message:', err);
-      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      if (!isNewConversation) {
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      }
       setMessageText(textToSend);
       setSendError(err instanceof Error ? err.message : '메시지 전송에 실패했습니다.');
     } finally {
@@ -355,7 +393,7 @@ const MessagesView: React.FC<MessagesViewProps> = ({ currentUser }) => {
                   <p style={{ marginBottom: '12px' }}>{messagesError}</p>
                   <button
                     type="button"
-                    onClick={() => selectedConversation?.id && fetchMessages(selectedConversation.id)}
+                    onClick={() => selectedConversation?.id && selectedConversation.id !== 'new' && fetchMessages(selectedConversation.id)}
                     style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--ig-separator)', backgroundColor: 'var(--ig-secondary-background)', color: 'var(--ig-primary-text)', cursor: 'pointer', fontSize: '14px' }}
                   >
                     다시 시도

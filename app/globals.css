@@ -1839,6 +1839,7 @@ button.story-item.story-item--add:disabled {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
   transition: background-color 0.2s;
 }
 

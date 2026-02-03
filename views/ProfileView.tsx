@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Grid, Film, Bookmark, UserSquare2, Settings, Plus, Heart, MessageCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { UserProfile, Post, Highlight, Story, AuthUser } from '../types';
 import { userService, postService, highlightService, storyService } from '../services/dataService';
@@ -424,7 +425,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
                     >
                       {profile?.isFollowing ? '팔로우 취소' : 'Follow'}
                     </button>
-                    <button className="profile-btn profile-btn--edit">Message</button>
+                    <Link
+                      href={`/messages?userId=${encodeURIComponent(profile?.id ?? '')}&username=${encodeURIComponent(profile?.username ?? '')}`}
+                      className="profile-btn profile-btn--edit"
+                    >
+                      Message
+                    </Link>
                   </>
                 )}
               </div>
