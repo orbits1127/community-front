@@ -6,6 +6,7 @@ import { Grid, Film, Bookmark, UserSquare2, Settings, Plus, Heart, MessageCircle
 import { UserProfile, Post, Highlight, Story, AuthUser } from '../types';
 import { userService, postService, highlightService, storyService } from '../services/dataService';
 import CommentModal from '../components/CommentModal';
+import FollowListModal from '../components/FollowListModal';
 
 // =============================================================================
 // Types
@@ -66,6 +67,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const editAvatarFileInputRef = useRef<HTMLInputElement>(null);
+
+  // State: followers / following list modal
+  const [followListModalType, setFollowListModalType] = useState<'followers' | 'following' | null>(null);
 
   // Sync activeTab with URL ?tab= (e.g. /profile?tab=saved from sidebar Saved)
   useEffect(() => {
@@ -431,17 +435,25 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
               <div className="profile-stat">
                 <span className="profile-stat-number">{profile?.postsCount ?? 0}</span> posts
               </div>
-              <div className="profile-stat profile-stat--clickable">
+              <button
+                type="button"
+                className="profile-stat profile-stat--clickable"
+                onClick={() => profile?.id && setFollowListModalType('followers')}
+              >
                 <span className="profile-stat-number">
                   {typeof profile?.followersCount === 'number'
                     ? profile.followersCount.toLocaleString()
                     : 0}
                 </span>{' '}
                 followers
-              </div>
-              <div className="profile-stat profile-stat--clickable">
+              </button>
+              <button
+                type="button"
+                className="profile-stat profile-stat--clickable"
+                onClick={() => profile?.id && setFollowListModalType('following')}
+              >
                 <span className="profile-stat-number">{profile?.followingCount ?? 0}</span> following
-              </div>
+              </button>
             </div>
 
             {/* Bio: name, description, website */}
@@ -473,18 +485,26 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
             <span className="profile-stat-number">{profile?.postsCount ?? 0}</span>
             <span className="profile-stat-label">posts</span>
           </div>
-          <div className="profile-stat-mobile">
+          <button
+            type="button"
+            className="profile-stat-mobile"
+            onClick={() => profile?.id && setFollowListModalType('followers')}
+          >
             <span className="profile-stat-number">
               {typeof profile?.followersCount === 'number'
                 ? profile.followersCount.toLocaleString()
                 : 0}
             </span>
             <span className="profile-stat-label">followers</span>
-          </div>
-          <div className="profile-stat-mobile">
+          </button>
+          <button
+            type="button"
+            className="profile-stat-mobile"
+            onClick={() => profile?.id && setFollowListModalType('following')}
+          >
             <span className="profile-stat-number">{profile?.followingCount ?? 0}</span>
             <span className="profile-stat-label">following</span>
-          </div>
+          </button>
         </div>
 
         {/* ---------- Section: highlights (new + list, click opens story modal) — 숨김: 본인도 하이라이트 없고, 타인은 하이라이트 없을 때 ---------- */}
@@ -1343,6 +1363,29 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId, isOwnProfile = true, 
             )}
           </div>
         </div>
+      )}
+
+      {/* ========== Modal: followers / following list ========== */}
+      {followListModalType && profile?.id && (
+        <FollowListModal
+          title={followListModalType === 'followers' ? 'Followers' : 'Following'}
+          listType={followListModalType}
+          userId={profile.id}
+          currentUser={currentUser}
+          onClose={() => setFollowListModalType(null)}
+          onCountChange={(type, delta) => {
+            if (!profile) return;
+            if (type === 'followers') {
+              setProfile((prev) =>
+                prev ? { ...prev, followersCount: Math.max(0, prev.followersCount + delta) } : null
+              );
+            } else {
+              setProfile((prev) =>
+                prev ? { ...prev, followingCount: Math.max(0, prev.followingCount + delta) } : null
+              );
+            }
+          }}
+        />
       )}
 
       {/* ========== Modal: comments (CommentModal, update post count on new comment) ========== */}

@@ -77,8 +77,8 @@ export async function GET(request: NextRequest) {
     const followingIds = following.map(f => f.followingId);
     followingIds.push(userId); // Exclude self
 
-    // Get random users not in following list
-    let allUsers = await prisma.user.findMany({
+    // Get random users not in following list (never include already-followed users)
+    const allUsers = await prisma.user.findMany({
       where: {
         id: { notIn: followingIds },
       },
@@ -98,50 +98,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // If no users found, get any users (except self)
+    // If no users to suggest (e.g. user follows everyone), return empty array
     if (allUsers.length === 0) {
-      allUsers = await prisma.user.findMany({
-        where: {
-          id: { not: userId },
-        },
-        take: limit,
-        select: {
-          id: true,
-          username: true,
-          fullName: true,
-          avatar: true,
-          isVerified: true,
-          createdAt: true,
-          _count: {
-            select: {
-              followers: true,
-            },
-          },
-        },
-      });
-    }
-
-    // If still no users, create dummy suggestions
-    if (allUsers.length === 0) {
-      const dummySuggestions = Array.from({ length: limit }).map((_, index) => ({
-        id: `dummy-${index}`,
-        user: {
-          id: `dummy-user-${index}`,
-          username: `user_${index + 1}`,
-          fullName: `User ${index + 1}`,
-          avatar: `https://picsum.photos/seed/suggestion-${index}/150/150`,
-          isVerified: false,
-        },
-        reason: index === 0 
-          ? 'Followed by art_daily + 5 more'
-          : index === 1
-          ? 'New to Instagram'
-          : 'Suggested for you',
-      }));
-
       return NextResponse.json({
         success: true,
-        data: dummySuggestions,
+        data: [],
       });
     }
 

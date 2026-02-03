@@ -692,7 +692,7 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
             <button className="h-sidebar__btn h-sidebar__btn--black">See All</button>
           </div>
 
-          {/* Suggestions list (follow button) */}
+          {/* Suggestions list (follow button) or empty state */}
           <div className="h-sidebar__list">
             {suggestions.length > 0
               ? suggestions.map(suggestion => (
@@ -720,18 +720,12 @@ const FeedView: React.FC<FeedViewProps> = ({ currentUser, onOpenComments, refres
                     </button>
                   </div>
                 ))
-              : renderPlaceholder(5).map((_, index) => (
-                  <div key={index} className="h-sidebar__item">
-                    <div className="h-sidebar__suggested-user">
-                      <div className="h-sidebar__avatar-small-placeholder"></div>
-                      <div className="h-sidebar__suggested-info">
-                        <div className="h-sidebar__username-placeholder"></div>
-                        <span className="h-sidebar__reason">Suggested for you</span>
-                      </div>
-                    </div>
-                    <button className="h-sidebar__btn">Follow</button>
+              : (
+                  <div className="h-sidebar__empty">
+                    <p className="h-sidebar__empty-text">모두 팔로우했어요!</p>
+                    <p className="h-sidebar__empty-sub">추천할 유저가 없습니다.</p>
                   </div>
-                ))}
+                )}
           </div>
 
           {/* Footer links */}

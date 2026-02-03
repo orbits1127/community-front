@@ -281,8 +281,6 @@ const CommentModal: React.FC<CommentModalProps> = ({ post, currentUser, onClose,
             <div className="modal-user-info">
               <img src={avatar} className="modal-avatar" alt={username} />
               <span className="modal-username">{username}</span>
-              <span className="modal-separator">•</span>
-              <button className="modal-follow-btn">Follow</button>
             </div>
             <div className="post-more-wrap" ref={moreMenuRef}>
               <button

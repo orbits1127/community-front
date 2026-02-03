@@ -1953,6 +1953,22 @@ button {
   background-color: var(--ig-elevated-separator);
 }
 
+.h-sidebar__empty {
+  padding: 20px 0;
+  text-align: center;
+}
+.h-sidebar__empty-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ig-primary-text);
+  margin: 0 0 4px;
+}
+.h-sidebar__empty-sub {
+  font-size: 12px;
+  color: var(--ig-secondary-text);
+  margin: 0;
+}
+
 /* -------------------------------------------------------------------------- */
 /* 12. MORE MENU (Instagram Style)                                            */
 /* -------------------------------------------------------------------------- */

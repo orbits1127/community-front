@@ -917,6 +917,219 @@ button.story-item.story-item--add:disabled {
 }
 
 /* -------------------------------------------------------------------------- */
+/* 7b. FOLLOW LIST MODAL (Followers / Following)                              */
+/* -------------------------------------------------------------------------- */
+.follow-list-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.follow-list-modal {
+  background-color: var(--ig-primary-background);
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.follow-list-modal-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--ig-separator);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.follow-list-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ig-primary-text);
+}
+
+.follow-list-modal-close {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px;
+  color: var(--ig-primary-text);
+}
+
+.follow-list-modal-close:hover {
+  opacity: 0.7;
+}
+
+.follow-list-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.follow-list-modal-loading,
+.follow-list-modal-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--ig-secondary-text);
+  font-size: 14px;
+}
+
+.follow-list-modal-list {
+  list-style: none;
+}
+
+.follow-list-modal-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ig-elevated-separator);
+}
+
+.follow-list-modal-item:last-child {
+  border-bottom: none;
+}
+
+.follow-list-modal-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.follow-list-modal-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.follow-list-modal-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ig-primary-text);
+}
+
+.follow-list-modal-fullname {
+  font-size: 14px;
+  color: var(--ig-secondary-text);
+}
+
+.follow-list-modal-btn {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ig-link);
+  padding: 6px 16px;
+  border-radius: 8px;
+}
+
+.follow-list-modal-btn:hover {
+  color: var(--ig-link-hover);
+}
+
+.follow-list-modal-btn--following {
+  color: var(--ig-primary-text);
+  background-color: var(--ig-elevated-separator);
+  border: 1px solid var(--ig-separator);
+}
+
+.follow-list-modal-btn--following:hover {
+  background-color: var(--ig-hover-overlay);
+  color: var(--ig-primary-text);
+}
+
+/* Follow list: 2차 모달 (팔로우 취소 확인) */
+.follow-list-unfollow-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.follow-list-unfollow-dialog {
+  background-color: var(--ig-primary-background);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 320px;
+  width: 100%;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.follow-list-unfollow-message {
+  font-size: 16px;
+  color: var(--ig-primary-text);
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.follow-list-unfollow-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.follow-list-unfollow-btn {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  min-width: 100px;
+}
+
+.follow-list-unfollow-btn--cancel {
+  background-color: var(--ig-elevated-separator);
+  color: var(--ig-primary-text);
+  border: 1px solid var(--ig-separator);
+}
+
+.follow-list-unfollow-btn--cancel:hover {
+  background-color: var(--ig-hover-overlay);
+}
+
+.follow-list-unfollow-btn--confirm {
+  background-color: var(--ig-primary-text);
+  color: var(--ig-primary-background);
+  border: none;
+}
+
+.follow-list-unfollow-btn--confirm:hover {
+  opacity: 0.9;
+}
+
+.follow-list-modal-more {
+  padding: 12px 16px;
+  text-align: center;
+  border-top: 1px solid var(--ig-separator);
+}
+
+.follow-list-modal-load-more {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ig-link);
+}
+
+.follow-list-modal-load-more:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* -------------------------------------------------------------------------- */
 /* 8. LOGIN / AUTH SCREEN (Instagram Style)                                   */
 /* -------------------------------------------------------------------------- */
 .login-page {
@@ -2123,6 +2336,22 @@ button.profile-highlight:hover .profile-highlight-circle--new {
   height: 32px;
   border-radius: 50%;
   background-color: var(--ig-elevated-separator);
+}
+
+.h-sidebar__empty {
+  padding: 20px 0;
+  text-align: center;
+}
+.h-sidebar__empty-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ig-primary-text);
+  margin: 0 0 4px;
+}
+.h-sidebar__empty-sub {
+  font-size: 12px;
+  color: var(--ig-secondary-text);
+  margin: 0;
 }
 
 /* -------------------------------------------------------------------------- */

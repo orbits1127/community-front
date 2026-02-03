@@ -114,18 +114,22 @@ export const userService = {
   },
 
   async unfollowUser(userId: string, currentUserId: string): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/users/${userId}/unfollow`, {
+    return fetchApi<void>(`/users/${userId}/follow`, {
       method: 'DELETE',
       body: JSON.stringify({ userId: currentUserId }),
     });
   },
 
-  async getFollowers(userId: string, page = 1): Promise<ApiResponse<PaginatedResponse<User>>> {
-    return fetchApi<PaginatedResponse<User>>(`/users/${userId}/followers?page=${page}`);
+  async getFollowers(userId: string, page = 1, viewerId?: string): Promise<ApiResponse<PaginatedResponse<User>>> {
+    const params = new URLSearchParams({ page: String(page) });
+    if (viewerId) params.set('viewerId', viewerId);
+    return fetchApi<PaginatedResponse<User>>(`/users/${userId}/followers?${params.toString()}`);
   },
 
-  async getFollowing(userId: string, page = 1): Promise<ApiResponse<PaginatedResponse<User>>> {
-    return fetchApi<PaginatedResponse<User>>(`/users/${userId}/following?page=${page}`);
+  async getFollowing(userId: string, page = 1, viewerId?: string): Promise<ApiResponse<PaginatedResponse<User>>> {
+    const params = new URLSearchParams({ page: String(page) });
+    if (viewerId) params.set('viewerId', viewerId);
+    return fetchApi<PaginatedResponse<User>>(`/users/${userId}/following?${params.toString()}`);
   },
 
   async getSuggestions(userId?: string): Promise<ApiResponse<Suggestion[]>> {
