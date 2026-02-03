@@ -753,7 +753,7 @@ async function main() {
   console.log('🌱 시드 데이터 생성 시작 (PostgreSQL)...');
   await prisma.$transaction(
     async (tx) => runSeed(tx),
-    { timeout: 60_000 }
+    { timeout: 300_000 }
   );
 }
 
