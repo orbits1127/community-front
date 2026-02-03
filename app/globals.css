@@ -469,25 +469,25 @@ button {
 .feed-sidebar { display: block; width: var(--right-sidebar-width); flex-shrink: 0; }
 @media (max-width: 1159px) { .feed-sidebar { display: none; } .feed-container { max-width: var(--feed-width); } }
 
-.sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-width-narrow); border-right: 1px solid var(--ig-separator); background: var(--ig-primary-background); color: var(--ig-primary-text); padding: 8px 12px 20px; display: flex; flex-direction: column; z-index: 1000; transition: width var(--transition-standard), overflow 0s; overflow: hidden; }
+.sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-width-narrow); border-right: 1px solid var(--ig-separator); background: var(--ig-primary-background); color: var(--ig-primary-text); padding: 12px 12px 20px; display: flex; flex-direction: column; z-index: 1000; transition: width var(--transition-standard), overflow 0s; overflow: hidden; }
 .sidebar a { text-decoration: none; color: inherit; }
 @media (min-width: 768px) { .sidebar:hover { width: var(--sidebar-width-wide); box-shadow: 4px 0 24px rgba(0,0,0,0.05); overflow: visible; } }
-.sidebar__logo-area { padding: 25px 12px 35px; height: 92px; display: flex; align-items: center; justify-content: center; transition: justify-content var(--transition-standard); }
-.sidebar__logo-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: inherit; text-decoration: none; }
-.sidebar:hover .sidebar__logo-area { justify-content: flex-start; }
+.sidebar__logo-area { flex-shrink: 0; padding: 12px 0 8px; min-height: 56px; display: flex; align-items: center; justify-content: center; transition: justify-content var(--transition-standard); }
+.sidebar__logo-link { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 40px; color: inherit; text-decoration: none; padding: 0 4px; }
+.sidebar:hover .sidebar__logo-area { justify-content: flex-start; padding-left: 8px; }
 .sidebar:hover .sidebar__logo-link { justify-content: flex-start; }
 .sidebar__logo-text { display: none; font-size: 22px; font-weight: 700; font-style: italic; font-family: serif; opacity: 0; white-space: nowrap; transition: opacity var(--transition-standard); }
 .sidebar:hover .sidebar__logo-text { display: block; opacity: 1; }
 .sidebar__logo-icon { display: block; flex-shrink: 0; }
 .sidebar:hover .sidebar__logo-icon { display: none; }
-.sidebar__nav { flex: 1; display: flex; flex-direction: column; align-items: center; }
-.sidebar:hover .sidebar__nav { align-items: flex-start; }
+.sidebar__nav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 8px; min-width: 0; }
+.sidebar:hover .sidebar__nav { align-items: stretch; padding-left: 0; padding-right: 0; }
 .sidebar__nav .sidebar__item { color: var(--ig-primary-text); }
-.sidebar__item { width: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px; margin: 4px 0; border-radius: 8px; transition: background var(--transition-standard), transform 0.1s ease; cursor: pointer; }
-.sidebar:hover .sidebar__item { justify-content: flex-start; }
+.sidebar__item { width: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px 12px; border-radius: 12px; transition: background var(--transition-standard), transform 0.1s ease; cursor: pointer; box-sizing: border-box; min-height: 48px; }
+.sidebar:hover .sidebar__item { justify-content: flex-start; padding-left: 12px; }
 .sidebar__item:hover { background-color: var(--ig-hover-overlay); }
 .sidebar__item:active { transform: scale(0.96); }
-.sidebar__icon-wrapper { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
+.sidebar__icon-wrapper { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; }
 .sidebar__label { font-size: 16px; white-space: nowrap; opacity: 0; width: 0; overflow: hidden; transition: opacity var(--transition-standard), width var(--transition-standard); }
 .sidebar:hover .sidebar__label { opacity: 1; width: auto; margin-left: 4px; }
 
@@ -2360,6 +2360,8 @@ button.profile-highlight:hover .profile-highlight-circle--new {
 /* -------------------------------------------------------------------------- */
 .sidebar__more {
   position: relative;
+  flex-shrink: 0;
+  margin-top: 8px;
 }
 
 .more-menu {
